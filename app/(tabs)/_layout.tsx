@@ -1,34 +1,42 @@
+import FloatingTabBar from '@/components/FloatingTabBar';
 import { Tabs } from 'expo-router';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
+      initialRouteName="schedule"
+      tabBar={props => <FloatingTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarButton: () => null, // Полностью скрываем из таб-бара
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="schedule"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
+          title: 'Расписание',
+          tabBarIconName: 'book-outline',
+        } as any}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Календарь',
+          tabBarIconName: 'calendar-outline',
+        } as any}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          title: 'Знания',
+          tabBarIconName: 'document-text-outline',
+        } as any}
       />
     </Tabs>
   );
