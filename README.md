@@ -4,6 +4,12 @@
 
 ### A cross-platform mobile organizer for academic activities
 
+<div align="center">
+  <img src="assets/screenshots/schedule.png" width="30%" />
+  <img src="assets/screenshots/calendar.png" width="30%" />
+  <img src="assets/screenshots/knowledge.png" width="30%" />
+</div>
+
 [![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?style=flat-square&logo=react)](https://reactnative.dev/)
 [![Expo](https://img.shields.io/badge/Expo-51-000020?style=flat-square&logo=expo)](https://expo.dev/)
 [![SQLite](https://img.shields.io/badge/SQLite-local%20DB-003B57?style=flat-square&logo=sqlite)](https://www.sqlite.org/)
