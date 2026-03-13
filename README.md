@@ -5,9 +5,9 @@
 ### A cross-platform mobile organizer for academic activities
 
 <div align="center">
-  <img src="assets/screenshots/schedule.png" width="30%" />
-  <img src="assets/screenshots/calendar.png" width="30%" />
-  <img src="assets/screenshots/knowledge.png" width="30%" />
+  <img src="assets/screenshots/1.png" width="30%" />
+  <img src="assets/screenshots/2.png" width="30%" />
+  <img src="assets/screenshots/3.png" width="30%" />
 </div>
 
 [![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?style=flat-square&logo=react)](https://reactnative.dev/)
