@@ -5,9 +5,9 @@
 ### A cross-platform mobile organizer for academic activities
 
 <div align="center">
-  <img src="assets/screenshots/1.png" width="30%" />
-  <img src="assets/screenshots/2.png" width="30%" />
-  <img src="assets/screenshots/3.png" width="30%" />
+  <img src="./assets/screenshots/1.png" width="30%" />
+  <img src="./assets/screenshots/2.png" width="30%" />
+  <img src="./assets/screenshots/3.png" width="30%" />
 </div>
 
 [![React Native](https://img.shields.io/badge/React%20Native-0.74-61DAFB?style=flat-square&logo=react)](https://reactnative.dev/)
@@ -85,20 +85,35 @@ Then scan the QR code with **Expo Go** on your phone, or press `i` / `a` to open
 ## 📁 Project Structure
 
 ```
-study-organizer/
-├── app/
-│   ├── screens/
-│   │   ├── ScheduleScreen.js    # Weekly timetable view
-│   │   ├── CalendarScreen.js    # Date-based event manager
-│   │   └── KnowledgeScreen.js   # Study notes & materials
-│   ├── components/              # Reusable UI components
-│   ├── database/
-│   │   └── db.js                # SQLite schema & queries
-│   └── navigation/
-│       └── AppNavigator.js      # Bottom tab navigation setup
-├── assets/                      # Icons and images
+StudyOrganizer/
+├── app/                         # Expo Router app directory
+│   ├── _layout.tsx              # Root navigation layout
+│   ├── (tabs)/                  # Bottom tab navigation
+│   │   ├── _layout.tsx
+│   │   ├── index.tsx            # Home / dashboard
+│   │   ├── schedule.tsx         # Weekly timetable view
+│   │   ├── calendar.tsx         # Date-based event manager
+│   │   └── notes.tsx            # Study notes & materials
+│   ├── add-lesson.tsx           # Add lesson flow
+│   ├── edit-schedule.tsx        # Edit timetable
+│   ├── add-homework.tsx         # Add homework / tasks
+│   ├── lesson-details.tsx       # Lesson details view
+│   ├── date-details.tsx         # Day details view
+│   ├── settings.tsx             # App settings
+│   ├── startup.tsx              # First-launch wizard
+│   └── modal.tsx                # Generic modal screen
+├── components/                  # Reusable UI components
+├── hooks/                       # Custom hooks (data & UI state)
+├── database/                    # SQLite schema & query helpers
+├── data/                        # Static seed data (lessons, etc.)
+├── utils/                       # Utility helpers
+├── constants/                   # Theme & calendar configuration
+├── assets/                      # Icons, fonts, images, screenshots
+├── scripts/                     # Dev scripts (e.g., reset-project)
+├── types/                       # Shared TypeScript types
 ├── app.json                     # Expo configuration
-└── package.json
+├── package.json
+└── tsconfig.json
 ```
 
 ---
