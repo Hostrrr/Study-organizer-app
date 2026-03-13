@@ -68,8 +68,8 @@ Make sure you have the following installed:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/study-organizer.git
-cd study-organizer
+git clone https://github.com/hostrrr/study-organizer-app.git
+cd study-organizer-app
 
 # Install dependencies
 npm install
