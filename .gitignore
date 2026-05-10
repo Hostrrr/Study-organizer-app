@@ -30,6 +30,7 @@ yarn-error.*
 
 # macOS
 .DS_Store
+**/.DS_Store
 *.pem
 
 # local env files
@@ -49,4 +50,12 @@ app-example
 
 # IDEs
 .idea/
-.vscode/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Coursework / academic artefacts (kept local, not for GitHub)
+coursework/
+scripts/generate_coursework_docx.py
+*.docx
+.venv-docx/
