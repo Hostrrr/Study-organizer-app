@@ -1,4 +1,6 @@
 import { Lesson } from '@/types/db';
+import { Typography } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { router } from 'expo-router';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -13,6 +15,7 @@ interface LessonCardProps {
 }
 
 export default function LessonCard({ lesson, hasHW, hasControlWork, hasTestWork, isLast, targetDate }: LessonCardProps) {
+  const { colors } = useAppTheme();
   const subjectName = lesson.subject_name || `Предмет #${lesson.subject_id}`;
   const roomText = lesson.room ? ` · ${lesson.room}` : '';
 
@@ -42,10 +45,14 @@ export default function LessonCard({ lesson, hasHW, hasControlWork, hasTestWork,
   };
 
   return (
-    <TouchableOpacity style={[styles.card, isLast && styles.cardLast]} onPress={handlePress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={[styles.card, { borderBottomColor: colors.borderSubtle }, isLast && styles.cardLast]}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
         <View style={styles.info}>
-        <Text style={styles.subject}>{subjectName}</Text>
-          <Text style={styles.subtext}>
+        <Text style={[styles.subject, { color: colors.textPrimary, fontFamily: Typography.fonts.body }]}>{subjectName}</Text>
+          <Text style={[styles.subtext, { color: colors.textMuted }]}>
           {timeText ? `${timeText} · ` : ''}{lesson.type}{roomText}
           </Text>
         </View>
@@ -53,13 +60,13 @@ export default function LessonCard({ lesson, hasHW, hasControlWork, hasTestWork,
       {/* Кружки-индикаторы */}
       <View style={styles.indicators}>
         {hasHW && (
-          <View style={[styles.indicator, styles.homeworkIndicator]} />
+          <View style={[styles.indicator, { backgroundColor: colors.success }]} />
         )}
         {hasControlWork && (
-          <View style={[styles.indicator, styles.controlWorkIndicator]} />
+          <View style={[styles.indicator, { backgroundColor: colors.danger }]} />
         )}
         {hasTestWork && (
-          <View style={[styles.indicator, styles.testWorkIndicator]} />
+          <View style={[styles.indicator, { backgroundColor: colors.warning }]} />
         )}
       </View>
     </TouchableOpacity>
@@ -105,13 +112,7 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
-  homeworkIndicator: {
-    backgroundColor: '#4CAF50', // Зеленый для домашней работы
-  },
-  controlWorkIndicator: {
-    backgroundColor: '#E25A2C', // Красный для контрольной работы
-  },
-  testWorkIndicator: {
-    backgroundColor: '#FFF76A', // Желтый для проверочной работы
-  },
+  homeworkIndicator: { backgroundColor: '#4CAF50' },
+  controlWorkIndicator: { backgroundColor: '#E25A2C' },
+  testWorkIndicator: { backgroundColor: '#FFF76A' },
 });

@@ -1,19 +1,21 @@
+import AssessmentActions from '@/components/assessment-actions';
 import LessonContainer from '@/components/LessonContainer';
+import ScreenContainer from '@/components/ui/screen-container';
+import { useAssessmentActions } from '@/hooks/use-assessment-actions';
 import { useExams } from '@/hooks/use-exams';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { useHomework } from '@/hooks/use-homework';
 import { useLessons } from '@/hooks/use-lessons';
 import { useScheduleSettings } from '@/hooks/use-schedule-settings';
-import { useTasks } from '@/hooks/use-tasks';
 import { isControlWork, isTestWork } from '@/utils/exam-utils';
-import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -33,13 +35,15 @@ const MONTHS = [
 ];
 
 export default function DateDetailsScreen() {
+  const { colors } = useAppTheme();
   const { date } = useLocalSearchParams<{ date: string }>();
   const [selectedDate] = useState(date || dayjs().format('YYYY-MM-DD'));
 
   const { lessons, loadByDay } = useLessons();
   const { homework, reload: reloadHomework } = useHomework();
-  const { tasks } = useTasks();
   const { exams } = useExams();
+  const { setExamDone, setExamGrade, deleteExamEntry } = useAssessmentActions();
+  const [gradingExamId, setGradingExamId] = useState<number | null>(null);
   const { settings } = useScheduleSettings();
 
   // Парсим дату
@@ -87,11 +91,6 @@ export default function DateDetailsScreen() {
     return lessons;
   }, [lessons]);
 
-  // Фильтруем данные на выбранную дату
-  const dateTasks = useMemo(() => {
-    return tasks.filter(task => task.date === selectedDate);
-  }, [tasks, selectedDate]);
-
   const dateHomework = useMemo(() => {
     return homework.filter(hw => hw.due_date === selectedDate);
   }, [homework, selectedDate]);
@@ -113,100 +112,106 @@ export default function DateDetailsScreen() {
 
     return {
       lessons: dayLessons.length,
-      tasks: dateTasks.length,
       homework: dateHomework.length,
       controlWorks: controlWorks.length,
       testWorks: testWorks.length,
     };
-  }, [dayLessons, dateTasks, dateHomework, dateExams]);
+  }, [dayLessons, dateHomework, dateExams]);
+
+  const summaryItems = [
+    { icon: 'book-outline', label: 'пар', value: stats.lessons, color: colors.accent },
+    { icon: 'document-text-outline', label: 'ДЗ', value: stats.homework, color: '#4A90E2' },
+    { icon: 'warning-outline', label: 'контр.', value: stats.controlWorks, color: colors.danger },
+    { icon: 'clipboard-outline', label: 'провер.', value: stats.testWorks, color: colors.warning },
+  ].filter(item => item.value > 0);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={32} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* День недели и дата */}
-        <View style={styles.dateSection}>
-          <Text style={styles.dayName}>{dayName}</Text>
-          <Text style={styles.date}>{formattedDate}</Text>
+    <ScreenContainer style={[styles.container, { backgroundColor: colors.bgPrimary }]}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.heroHeader}>
+          <Text style={[styles.heroDay, { color: colors.accent }]}>{dayName}</Text>
+          <Text style={[styles.heroDate, { color: colors.textPrimary }]}>{dayNum} {monthName}</Text>
+          <Text style={[styles.heroYear, { color: colors.textMuted }]}>{dateObj.year()}</Text>
         </View>
 
-        {/* Краткая сводка */}
-        <View style={styles.summarySection}>
-          <Text style={styles.summaryTitle}>Сводка дня</Text>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{stats.lessons}</Text>
-              <Text style={styles.summaryLabel}>Пар</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{stats.homework}</Text>
-              <Text style={styles.summaryLabel}>ДЗ</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{stats.controlWorks}</Text>
-              <Text style={styles.summaryLabel}>Контрольные</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{stats.testWorks}</Text>
-              <Text style={styles.summaryLabel}>Проверочные</Text>
-            </View>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{stats.tasks}</Text>
-              <Text style={styles.summaryLabel}>Задач</Text>
-            </View>
-          </View>
-        </View>
+        {summaryItems.length === 0 ? (
+          <Text style={[styles.freeDay, { color: colors.textMuted }]}>Свободный день</Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.pillsRow}
+          >
+            {summaryItems.map((item, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.pill,
+                  { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
+                ]}
+              >
+                <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={16} color={item.color} />
+                <Text style={[styles.pillValue, { color: item.color }]}>{item.value}</Text>
+                <Text style={[styles.pillLabel, { color: colors.textMuted }]}>{item.label}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        )}
 
         {/* Расписание */}
         <View style={styles.scheduleSection}>
-          <Text style={styles.sectionTitle}>Расписание</Text>
+          <View style={styles.swissSectionHeader}>
+            <View style={[styles.swissSectionLine, { backgroundColor: colors.accent }]} />
+            <Text style={[styles.swissSectionTitle, { color: colors.textMuted }]}>Расписание</Text>
+          </View>
           {dayLessons.length > 0 ? (
-            <LessonContainer 
-              lessons={dayLessons} 
-              homework={dateHomework}
-              exams={dateExams}
-              targetDate={selectedDate}
-            />
+            <View style={styles.lessonContainerWrap}>
+              <LessonContainer
+                lessons={dayLessons}
+                homework={dateHomework}
+                exams={dateExams}
+                targetDate={selectedDate}
+              />
+            </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Нет уроков на этот день</Text>
+              <Text style={[styles.emptyText, { color: colors.textMuted }]}>Нет уроков на этот день</Text>
             </View>
           )}
         </View>
 
-        {/* Задачи на этот день */}
-        {dateTasks.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Задачи</Text>
-            {dateTasks.map(task => (
-              <View key={task.id} style={styles.taskItem}>
-                <View style={[styles.taskIndicator, task.is_done ? styles.taskDone : styles.taskPending]} />
-                <Text style={[styles.taskText, task.is_done ? styles.taskTextDone : null]}>
-                  {task.title}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
         {/* Домашние задания на этот день */}
         {dateHomework.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Домашние задания</Text>
+            <View style={styles.swissSectionHeader}>
+              <View style={[styles.swissSectionLine, { backgroundColor: colors.accent }]} />
+              <Text style={[styles.swissSectionTitle, { color: colors.textMuted }]}>Домашние задания</Text>
+            </View>
             {dateHomework.map(hw => (
-              <View key={hw.id} style={styles.homeworkItem}>
-                <View style={[styles.homeworkIndicator, hw.is_completed ? styles.homeworkDone : styles.homeworkPending]} />
-                <View style={styles.homeworkContent}>
-                  <Text style={styles.homeworkTitle}>{hw.title}</Text>
-                  {hw.description && (
-                    <Text style={styles.homeworkDescription}>{hw.description}</Text>
-                  )}
-                </View>
+              <View
+                key={hw.id}
+                style={[
+                  styles.hwCard,
+                  {
+                    backgroundColor: hw.is_completed ? colors.surface : colors.bgPrimary,
+                    borderLeftColor: hw.is_completed ? colors.success : colors.warning,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.hwTitle,
+                    { color: colors.textPrimary },
+                    hw.is_completed ? { textDecorationLine: 'line-through', color: colors.textMuted } : null,
+                  ]}
+                >
+                  {hw.title}
+                </Text>
+                {hw.description && <Text style={[styles.hwDesc, { color: colors.textMuted }]}>{hw.description}</Text>}
               </View>
             ))}
           </View>
@@ -215,23 +220,39 @@ export default function DateDetailsScreen() {
         {/* Экзамены на этот день */}
         {dateExams.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Экзамены и работы</Text>
+            <View style={styles.swissSectionHeader}>
+              <View style={[styles.swissSectionLine, { backgroundColor: colors.accent }]} />
+              <Text style={[styles.swissSectionTitle, { color: colors.textMuted }]}>Экзамены и работы</Text>
+            </View>
             {dateExams.map(exam => {
               const isControl = isControlWork(exam.type);
               const isTest = isTestWork(exam.type);
-              
+
               return (
                 <View key={exam.id} style={styles.examItem}>
                   <View style={[
                     styles.examIndicator,
-                    isControl && styles.controlWorkIndicator,
-                    isTest && styles.testWorkIndicator,
+                    isControl && { backgroundColor: colors.danger },
+                    isTest && { backgroundColor: colors.warning },
                   ]} />
                   <View style={styles.examContent}>
-                    <Text style={styles.examTitle}>{exam.type}</Text>
+                    <Text style={[styles.examTitle, { color: colors.textPrimary }]}>{exam.type}</Text>
                     {exam.room && (
-                      <Text style={styles.examSubtitle}>Аудитория: {exam.room}</Text>
+                      <Text style={[styles.examSubtitle, { color: colors.textMuted }]}>Аудитория: {exam.room}</Text>
                     )}
+                    <View style={styles.examActions}>
+                      <AssessmentActions
+                        exam={exam}
+                        compact
+                        expanded={gradingExamId === exam.id}
+                        onToggleExpanded={() => setGradingExamId(gradingExamId === exam.id ? null : exam.id)}
+                        onToggleDone={(currentExam, done) => setExamDone(currentExam.id, done)}
+                        onDelete={(currentExam) => deleteExamEntry(currentExam.id)}
+                        onSetGrade={(currentExam, grade) =>
+                          setExamGrade({ exam: currentExam, subjectId: currentExam.subject_id, grade })
+                        }
+                      />
+                    </View>
                   </View>
                 </View>
               );
@@ -239,151 +260,118 @@ export default function DateDetailsScreen() {
           </View>
         )}
       </ScrollView>
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-  },
-  header: {
-    paddingTop: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: '#000',
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingTop: 0,
   },
-  dateSection: {
-    marginBottom: 30,
+  contentContainer: {
+    paddingBottom: 40,
   },
-  dayName: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 8,
-    fontFamily: 'serif',
+  heroHeader: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
-  date: {
-    fontSize: 24,
-    color: '#C89153',
-    fontFamily: 'serif',
-  },
-  summarySection: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 30,
-  },
-  summaryTitle: {
-    fontSize: 20,
+  heroDay: {
+    fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
-    marginBottom: 16,
-    fontFamily: 'serif',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  summaryItem: {
-    flex: 1,
-    minWidth: '30%',
-    alignItems: 'center',
-  },
-  summaryValue: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#C89153',
+  heroDate: {
+    fontSize: 52,
+    fontWeight: '800',
+    fontFamily: 'Glanz',
+    lineHeight: 56,
     marginBottom: 4,
   },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#999',
+  heroYear: {
+    fontSize: 20,
+    fontWeight: '300',
+  },
+  pillsRow: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    gap: 10,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+  },
+  pillValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pillLabel: {
+    fontSize: 13,
+  },
+  freeDay: {
+    fontSize: 15,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
   scheduleSection: {
-    marginBottom: 30,
+    paddingHorizontal: 24,
+    marginBottom: 32,
   },
   section: {
-    marginBottom: 30,
+    paddingHorizontal: 24,
+    marginBottom: 32,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
+  swissSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
-    fontFamily: 'serif',
+    gap: 12,
+  },
+  swissSectionLine: {
+    width: 3,
+    height: 18,
+    borderRadius: 2,
+  },
+  swissSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  lessonContainerWrap: {
+    paddingHorizontal: 0,
   },
   emptyState: {
     padding: 40,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#999',
     fontSize: 16,
   },
-  taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    paddingLeft: 8,
+  hwCard: {
+    borderLeftWidth: 3,
+    borderRadius: 8,
+    padding: 14,
+    marginBottom: 10,
   },
-  taskIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  taskDone: {
-    backgroundColor: '#4CAF50',
-  },
-  taskPending: {
-    backgroundColor: '#E25A2C',
-  },
-  taskText: {
-    fontSize: 16,
-    color: '#fff',
-    flex: 1,
-  },
-  taskTextDone: {
-    color: '#999',
-    textDecorationLine: 'line-through',
-  },
-  homeworkItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    alignItems: 'flex-start',
-  },
-  homeworkIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginTop: 6,
-    marginRight: 12,
-  },
-  homeworkDone: {
-    backgroundColor: '#4CAF50',
-  },
-  homeworkPending: {
-    backgroundColor: '#FFF76A',
-  },
-  homeworkContent: {
-    flex: 1,
-  },
-  homeworkTitle: {
-    fontSize: 16,
+  hwTitle: {
+    fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
     marginBottom: 4,
   },
-  homeworkDescription: {
-    fontSize: 14,
-    color: '#999',
+  hwDesc: {
+    fontSize: 13,
   },
   examItem: {
     flexDirection: 'row',
@@ -397,24 +385,19 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginRight: 12,
   },
-  controlWorkIndicator: {
-    backgroundColor: '#E25A2C',
-  },
-  testWorkIndicator: {
-    backgroundColor: '#FFF76A',
-  },
   examContent: {
     flex: 1,
+  },
+  examActions: {
+    marginTop: 10,
   },
   examTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
     marginBottom: 4,
   },
   examSubtitle: {
     fontSize: 14,
-    color: '#999',
   },
 });
 

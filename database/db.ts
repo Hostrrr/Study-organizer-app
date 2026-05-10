@@ -84,12 +84,23 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS grades (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       subject_id INTEGER NOT NULL,
+      exam_id INTEGER,
       grade INTEGER NOT NULL,
       description TEXT,
       date TEXT,
-      FOREIGN KEY(subject_id) REFERENCES subjects(id) ON DELETE CASCADE
+      FOREIGN KEY(subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+      FOREIGN KEY(exam_id) REFERENCES exams(id) ON DELETE SET NULL
     );
   `);
+  try {
+    const tableInfo = db.getAllSync(`PRAGMA table_info(grades);`);
+    const hasExamId = tableInfo.some((row: any) => row.name === 'exam_id');
+    if (!hasExamId) {
+      db.execSync(`ALTER TABLE grades ADD COLUMN exam_id INTEGER;`);
+    }
+  } catch (e) {
+    // Игнорируем ошибку
+  }
 
   // NOTES
   db.execSync(`
@@ -102,6 +113,61 @@ export function initDb() {
       FOREIGN KEY(subject_id) REFERENCES subjects(id) ON DELETE SET NULL,
       FOREIGN KEY(lesson_id) REFERENCES lessons(id) ON DELETE SET NULL
     );
+  `);
+
+   // NOTE_FOLDERS
+   db.execSync(`
+    CREATE TABLE IF NOT EXISTS note_folders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_id INTEGER,
+    name TEXT NOT NULL,
+    parent_id INTEGER,  -- для вложенных папок
+    FOREIGN KEY(subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+    FOREIGN KEY(parent_id) REFERENCES note_folders(id) ON DELETE CASCADE
+    );
+  `);
+
+  // NOTES_V2
+  db.execSync(`
+  CREATE TABLE IF NOT EXISTS notes_v2 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_id INTEGER,
+    folder_id INTEGER,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,        -- хранится как Markdown
+    tags TEXT,                 -- JSON массив: '["лекция","экзамен"]'
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(subject_id) REFERENCES subjects(id) ON DELETE SET NULL,
+    FOREIGN KEY(folder_id) REFERENCES note_folders(id) ON DELETE SET NULL
+  );
+  `);
+
+// NOTE_LINKS
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS note_links (
+  from_id INTEGER NOT NULL,
+  to_id INTEGER NOT NULL,
+  PRIMARY KEY(from_id, to_id),
+  FOREIGN KEY(from_id) REFERENCES notes_v2(id) ON DELETE CASCADE,
+  FOREIGN KEY(to_id) REFERENCES notes_v2(id) ON DELETE CASCADE
+    );
+  `);
+
+  // FLASHCARDS
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS flashcards (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  subject_id INTEGER,
+  note_id INTEGER,           -- опционально привязаны к заметке
+  front TEXT NOT NULL,
+  back TEXT NOT NULL,
+  next_review TEXT,          -- дата следующего повторения
+  interval INTEGER DEFAULT 1,
+  ease_factor REAL DEFAULT 2.5,  -- для SM-2
+  FOREIGN KEY(subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+  FOREIGN KEY(note_id) REFERENCES notes_v2(id) ON DELETE SET NULL
+);
   `);
 
   // ATTACHMENTS (файлы, фото, ссылки)
@@ -140,6 +206,25 @@ export function initDb() {
   } catch (e) {
     // Игнорируем ошибку
   }
+
+  // REVIEW LOG (история повторений карточек для аналитики / сидов)
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS review_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reviewed_at TEXT NOT NULL,
+      cards_reviewed INTEGER NOT NULL,
+      subject_id INTEGER,
+      FOREIGN KEY(subject_id) REFERENCES subjects(id) ON DELETE SET NULL
+    );
+  `);
+
+  // APP SETTINGS (служебные флаги/версии)
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
 
   console.log('[DB] All tables ensured.');
 }

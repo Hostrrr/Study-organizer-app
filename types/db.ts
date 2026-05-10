@@ -42,6 +42,7 @@ export interface Task {
 export interface Grade {
   id: number;
   subject_id: number;
+  exam_id?: number | null;
   grade: number;
   description?: string;
   date?: string;
@@ -69,4 +70,37 @@ export interface Exam {
   type: string;
   room?: string;
   is_completed?: number;
+}
+export interface NoteFolder {
+  id: number;
+  name: string;
+  subject_id?: number;
+  parent_id?: number | null;
+}
+
+export interface NoteV2 {
+  id: number;
+  title: string;
+  body: string;
+  subject_id?: number;
+  folder_id?: number | null;
+  tags?: string | null; // JSON строка: '["лекция","экзамен"]'
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NoteLink {
+  id: number;
+  title: string;
+}
+
+export interface Flashcard {
+  id: number;
+  front: string;
+  back: string;
+  subject_id?: number;
+  note_id?: number | null;
+  next_review?: string | null;
+  interval: number;
+  ease_factor: number;
 }

@@ -1,4 +1,5 @@
 import LessonCard from '@/components/LessonCard';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { Exam, Homework, Lesson } from '@/types/db';
 import { isControlWork, isTestWork } from '@/utils/exam-utils';
 import React, { useEffect, useMemo, useRef } from 'react';
@@ -23,6 +24,7 @@ interface LessonContainerProps {
 }
 
 export default function LessonContainer({ lessons, homework = [], exams = [], targetDate }: LessonContainerProps) {
+  const { colors } = useAppTheme();
   // Используем переданную дату или сегодняшнюю
   const filterDate = targetDate || new Date().toISOString().split('T')[0];
   const previousTargetDate = useRef(filterDate);
@@ -86,7 +88,7 @@ export default function LessonContainer({ lessons, homework = [], exams = [], ta
   }, [filterDate, lessonsKey]);
 
   return (
-    <View style={styles.lessonsContainer}>
+    <View style={[styles.lessonsContainer, { backgroundColor: colors.surface, shadowColor: colors.overlay }]}>
       {lessons.length > 0 ? (
         lessons.map((lesson, index) => (
           <LessonCard 
@@ -101,7 +103,7 @@ export default function LessonContainer({ lessons, homework = [], exams = [], ta
         ))
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>Нет уроков на этот день</Text>
+          <Text style={[styles.emptyText, { color: colors.textMuted }]}>Нет уроков на этот день</Text>
         </View>
       )}
     </View>

@@ -1,5 +1,7 @@
-import { DARK_CALENDAR_THEME } from '@/constants/calendar-theme';
+import { ensureRuCalendarLocale, getCalendarTheme } from '@/constants/calendar-theme';
+import { Typography } from '@/constants/theme';
 import { useExams } from '@/hooks/use-exams';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { useHomework } from '@/hooks/use-homework';
 import { useLessons } from '@/hooks/use-lessons';
 import { useScheduleSettings } from '@/hooks/use-schedule-settings';
@@ -17,30 +19,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
-
-// Локализация календаря
-LocaleConfig.locales['ru'] = {
-  monthNames: [
-    'Январь','Февраль','Март','Апрель','Май','Июнь',
-    'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'
-  ],
-  monthNamesShort: [
-    'Янв','Фев','Мар','Апр','Май','Июн',
-    'Июл','Авг','Сен','Окт','Ноя','Дек'
-  ],
-  dayNames: [
-    'Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'
-  ],
-  dayNamesShort: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-  firstDayOfWeek: 1,
-};
-LocaleConfig.defaultLocale = 'ru';
+import { Calendar } from 'react-native-calendars';
 
 type ItemType = 'homework' | 'exam';
 
 export default function AddHomeworkScreen() {
+  const { isDark } = useAppTheme();
   const { date } = useLocalSearchParams<{ date: string }>();
+  const calendarTheme = useMemo(() => getCalendarTheme(isDark), [isDark]);
+
+  useEffect(() => {
+    ensureRuCalendarLocale();
+  }, []);
+
   const { lessons, loadByDay } = useLessons();
   const { create: createHomework } = useHomework();
   const { create: createExam } = useExams();
@@ -235,7 +226,7 @@ export default function AddHomeworkScreen() {
                   },
                 }}
                 firstDay={1}
-                theme={DARK_CALENDAR_THEME}
+                theme={calendarTheme}
               />
             </View>
           )}
@@ -429,7 +420,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '600',
     color: '#fff',
-    fontFamily: 'Glanz',
+    fontFamily: Typography.fonts.heading,
   },
   saveText: {
     fontSize: 16,

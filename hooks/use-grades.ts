@@ -13,9 +13,10 @@ export function useGrades() {
     subject_id: number,
     grade: number,
     description?: string,
-    date?: string
+    date?: string,
+    exam_id?: number
   ) => {
-    addGrade(subject_id, grade, description, date);
+    addGrade(subject_id, grade, description, date, exam_id);
     load();
   };
 

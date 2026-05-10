@@ -2,6 +2,8 @@ import { useLessons } from '@/hooks/use-lessons';
 import { useScheduleSettings } from '@/hooks/use-schedule-settings';
 import { useSubjects } from '@/hooks/use-subjects';
 import { useTeachers } from '@/hooks/use-teachers';
+import { useAppTheme } from '@/hooks/use-app-theme';
+import { Typography } from '@/constants/theme';
 import { Lesson } from '@/types/db';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -45,6 +47,7 @@ interface LessonForm {
 }
 
 export default function EditScheduleScreen() {
+  const { colors } = useAppTheme();
   const { subjects, create: createSubject, remove: removeSubject, reload: reloadSubjects } = useSubjects();
   const { teachers, create: createTeacher, remove: removeTeacher, reload: reloadTeachers } = useTeachers();
   const { lessons, create: createLesson, remove: removeLesson, reload: reloadLessons } = useLessons();
@@ -282,16 +285,16 @@ export default function EditScheduleScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bgPrimary }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.bgPrimary }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color="#fff" />
+          <Ionicons name="close" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.title}>Редактировать расписание</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Редактировать расписание</Text>
         </View>
         <View style={styles.closeButtonPlaceholder} />
       </View>
@@ -684,13 +687,13 @@ export default function EditScheduleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#F7F8FA',
   },
   header: {
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 30,
-    backgroundColor: '#000',
+    backgroundColor: '#F7F8FA',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -710,7 +713,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#fff',
-    fontFamily: 'Glanz',
+    fontFamily: Typography.fonts.heading,
     textAlign: 'center',
   },
   content: {
@@ -723,7 +726,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: '#121417',
     marginBottom: 12,
   },
   optionsContainer: {
@@ -736,7 +739,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -745,7 +748,7 @@ const styles = StyleSheet.create({
     borderColor: '#C89153',
   },
   optionText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 12,
   },
   selectedOptionText: {
@@ -756,9 +759,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     borderStyle: 'dashed',
   },
   addButtonText: {
@@ -770,13 +773,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    color: '#fff',
+    color: '#121417',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     marginBottom: 10,
   },
   newInputButtons: {
@@ -789,7 +792,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelNewText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 14,
   },
   confirmNewButton: {
@@ -823,25 +826,25 @@ const styles = StyleSheet.create({
   emptyState: {
     padding: 40,
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
   },
   emptyStateText: {
-    color: '#666',
+    color: '#6D7680',
     fontSize: 16,
     marginBottom: 4,
   },
   emptyStateSubtext: {
-    color: '#444',
+    color: '#98A2AE',
     fontSize: 12,
   },
   lessonCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
   },
   lessonCardHeader: {
     flexDirection: 'row',
@@ -863,7 +866,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   lessonFieldLabel: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 12,
     marginBottom: 8,
   },
@@ -901,9 +904,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#000',
+    backgroundColor: '#EEF1F5',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     alignItems: 'center',
   },
   selectedTypeOption: {
@@ -911,7 +914,7 @@ const styles = StyleSheet.create({
     borderColor: '#C89153',
   },
   typeOptionText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 12,
   },
   selectedTypeOptionText: {
@@ -922,17 +925,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#000',
+    backgroundColor: '#EEF1F5',
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
   },
   timeSlotOptionSelected: {
     backgroundColor: '#C89153',
     borderColor: '#C89153',
   },
   timeSlotText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 12,
   },
   timeSlotTextSelected: {
@@ -948,9 +951,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#000',
+    backgroundColor: '#EEF1F5',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     alignItems: 'center',
   },
   weekOptionSelected: {
@@ -958,7 +961,7 @@ const styles = StyleSheet.create({
     borderColor: '#C89153',
   },
   weekOptionText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 12,
   },
   weekOptionTextSelected: {
@@ -966,13 +969,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   lessonInput: {
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 12,
-    color: '#fff',
+    color: '#121417',
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
   },
   completeButton: {
     backgroundColor: '#C89153',
@@ -988,41 +991,41 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   dropdownButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   dropdownButtonText: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 14,
     flex: 1,
   },
   dropdownButtonTextPlaceholder: {
-    color: '#666',
+    color: '#6D7680',
   },
   dropdownArrow: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 12,
     marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(8, 10, 15, 0.24)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     width: '80%',
     maxHeight: '70%',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1030,15 +1033,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#DEE3EA',
   },
   modalTitle: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 16,
     fontWeight: '600',
   },
   modalClose: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 24,
     fontWeight: '300',
   },
@@ -1048,10 +1051,10 @@ const styles = StyleSheet.create({
   modalOption: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: '#DEE3EA',
   },
   modalOptionText: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 16,
   },
 });

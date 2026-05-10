@@ -9,6 +9,9 @@ import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { initDb } from '@/database/db';
+import { runDebugSeeds } from '@/database/debug-seeds';
+import { Colors } from '@/constants/theme';
+import { useDebugSeeds } from '@/hooks/use-debug-seeds';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useFirstLaunch } from '@/hooks/use-first-launch';
 import StartupScreen from './startup';
@@ -22,13 +25,17 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const themeName = colorScheme === 'dark' ? 'dark' : 'light';
+  const appColors = Colors[themeName];
   const { isFirstLaunch, isLoading } = useFirstLaunch();
+  const { debugSeedsEnabled, isDebugSeedsLoading } = useDebugSeeds();
   const [dbInitialized, setDbInitialized] = useState(false);
+  const shouldAutoRunDebugSeeds =
+    __DEV__ || process.env.EXPO_PUBLIC_ENABLE_DEBUG_SEEDS === 'true';
 
   // Загружаем шрифты
   const [fontsLoaded, fontError] = useFonts({
     'Glanz': require('../assets/fonts/Glanz.otf'),
-    'Glanz-Italic': require('../assets/fonts/Glanz Italic.otf'),
   });
 
   useEffect(() => {
@@ -44,6 +51,19 @@ export default function RootLayout() {
 
   // Скрываем splash screen когда все загружено (или при ошибке загрузки шрифтов)
   useEffect(() => {
+    if (!dbInitialized || isDebugSeedsLoading) {
+      return;
+    }
+
+    if (!shouldAutoRunDebugSeeds || !debugSeedsEnabled) {
+      return;
+    }
+
+    const result = runDebugSeeds();
+    console.log('[DEBUG_SEEDS] Auto run result:', result.message);
+  }, [dbInitialized, debugSeedsEnabled, isDebugSeedsLoading, shouldAutoRunDebugSeeds]);
+
+  useEffect(() => {
     if ((fontsLoaded || fontError) && dbInitialized && !isLoading) {
       SplashScreen.hideAsync();
     }
@@ -55,8 +75,8 @@ export default function RootLayout() {
     return (
       <SafeAreaProvider>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#C89153" />
-          <StatusBar style="light" />
+          <ActivityIndicator size="large" color={appColors.accent} />
+          <StatusBar style={themeName === 'dark' ? 'light' : 'dark'} />
         </View>
       </SafeAreaProvider>
     );
@@ -68,7 +88,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <StartupScreen />
-          <StatusBar style="light" />
+          <StatusBar style={themeName === 'dark' ? 'light' : 'dark'} />
         </ThemeProvider>
       </SafeAreaProvider>
     );
@@ -87,9 +107,13 @@ export default function RootLayout() {
           <Stack.Screen name="add-homework" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="settings" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="edit-schedule" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="note-editor" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="flashcard-review" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="subject-details" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="vault-sync" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="startup" options={{ presentation: 'modal', headerShown: false }} />
         </Stack>
-        <StatusBar style="light" />
+        <StatusBar style={themeName === 'dark' ? 'light' : 'dark'} />
       </ThemeProvider>
     </SafeAreaProvider>
   );
@@ -98,7 +122,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: Colors.dark.bgPrimary,
     justifyContent: 'center',
     alignItems: 'center',
   },

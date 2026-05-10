@@ -1,11 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { useAppTheme } from '@/hooks/use-app-theme';
 
 export default function FloatingTabBar({ state, descriptors, navigation }: any) {
+  const { colors, isDark, typography } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const tabBarBottom = Math.max(insets.bottom, 10);
+  const canUseLiquidGlass = isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
+
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.container}>
+    <View style={[styles.wrapper, { paddingBottom: tabBarBottom }]}>
+      <View style={[styles.container, { borderColor: colors.borderSubtle }]}>
+        {canUseLiquidGlass ? (
+          <GlassView
+            style={StyleSheet.absoluteFill}
+            colorScheme={isDark ? 'dark' : 'light'}
+            tintColor={colors.glassTint}
+            glassEffectStyle="regular"
+            isInteractive={false}
+          />
+        ) : (
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            intensity={isDark ? 45 : 60}
+            tint={isDark ? 'dark' : 'light'}
+          />
+        )}
+        {!canUseLiquidGlass && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surfaceGlass }]} />}
         {state.routes.map((route: any, index: number) => {
         const { options } = descriptors[route.key];
         
@@ -46,9 +72,15 @@ export default function FloatingTabBar({ state, descriptors, navigation }: any) 
             <Ionicons
               name={iconName}
               size={24}
-              color={isFocused ? '#ffffffff' : '#999'}
+              color={isFocused ? colors.textPrimary : colors.textMuted}
             />
-            <Text style={[styles.label, isFocused && styles.activeLabel]}>
+            <Text
+              style={[
+                styles.label,
+                { color: colors.textMuted, fontFamily: typography.fonts.body },
+                isFocused && [styles.activeLabel, { color: colors.textPrimary }],
+              ]}
+            >
               {label}
             </Text>
           </TouchableOpacity>
@@ -68,11 +100,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flexDirection: 'row',
-    backgroundColor: '#000000ff',
-    borderTopWidth: 1,
-    borderTopColor: '#ddd',
-    paddingVertical: 8,
-    paddingBottom: 25,
+    borderWidth: 1,
+    marginHorizontal: 14,
+    borderRadius: 24,
+    overflow: 'hidden',
+    paddingVertical: 10,
     justifyContent: 'space-around',
   },
   tab: {
@@ -80,12 +112,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    color: '#d3d3d3ff',
     fontSize: 12,
     marginTop: 2,
   },
   activeLabel: {
-    color: '#ffffffff',
     fontWeight: '700',
   },
 });

@@ -7,19 +7,17 @@
     "icon": "./assets/images/icon.png",
     "scheme": "studyorganizer",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "statusBar": {
-      "style": "light",
-      "backgroundColor": "#000000"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.studyorganizer.app",
       "buildNumber": "1",
       "infoPlist": {
-        "UIViewControllerBasedStatusBarAppearance": false
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true,
+        "UIDesignRequiresCompatibility": false
       },
-      "icon":{
+      "icon": {
         "light": "./assets/icons/ios-light.png",
         "dark": "./assets/icons/ios-dark.png",
         "tinted": "./assets/icons/ios-tinted.png"
@@ -33,13 +31,7 @@
         "foregroundImage": "./assets/icons/adaptive-icon.png",
         "monochromeImage": "./assets/icons/adaptive-icon.png"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "statusBar": {
-        "barStyle": "light-content",
-        "backgroundColor": "#000000",
-        "translucent": true
-      }
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -61,7 +53,10 @@
         }
       ],
       "expo-sqlite",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser",
+      "expo-image",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

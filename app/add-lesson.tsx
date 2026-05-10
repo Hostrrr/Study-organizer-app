@@ -2,6 +2,8 @@ import { useLessons } from '@/hooks/use-lessons';
 import { useScheduleSettings } from '@/hooks/use-schedule-settings';
 import { useSubjects } from '@/hooks/use-subjects';
 import { useTeachers } from '@/hooks/use-teachers';
+import { Typography } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -32,6 +34,7 @@ const LESSON_TYPES = [
 ];
 
 export default function AddLessonScreen() {
+  const { colors } = useAppTheme();
   const { subjects, create: createSubject } = useSubjects();
   const { teachers, create: createTeacher } = useTeachers();
   const { create: createLesson } = useLessons();
@@ -97,17 +100,17 @@ export default function AddLessonScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bgPrimary }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.bgSecondary }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.cancelButton}>
-          <Text style={styles.cancelText}>Отмена</Text>
+          <Text style={[styles.cancelText, { color: colors.textPrimary }]}>Отмена</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Добавить урок</Text>
+        <Text style={[styles.title, { color: colors.textPrimary, fontFamily: Typography.fonts.heading }]}>Добавить урок</Text>
         <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-          <Text style={styles.saveText}>Сохранить</Text>
+          <Text style={[styles.saveText, { color: colors.accent }]}>Сохранить</Text>
         </TouchableOpacity>
       </View>
 
@@ -118,7 +121,7 @@ export default function AddLessonScreen() {
       >
         {/* Выбор предмета */}
         <View style={styles.section}>
-          <Text style={styles.label}>Предмет</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Предмет</Text>
           {!showNewSubjectInput ? (
             <>
               <View style={styles.optionsContainer}>
@@ -133,8 +136,10 @@ export default function AddLessonScreen() {
                     <Text
                       style={[
                         styles.optionText,
-                        selectedSubjectId === subject.id && styles.selectedOptionText,
-                      ]}>
+                        { color: colors.textMuted },
+                        selectedSubjectId === subject.id && [styles.selectedOptionText, { color: colors.inverseText }],
+                      ]}
+                    >
                       {subject.name}
                     </Text>
                   </TouchableOpacity>
@@ -142,8 +147,8 @@ export default function AddLessonScreen() {
               </View>
               <TouchableOpacity
                 onPress={() => setShowNewSubjectInput(true)}
-                style={styles.addButton}>
-                <Text style={styles.addButtonText}>+ Добавить предмет</Text>
+                style={[styles.addButton, { borderColor: colors.borderSubtle, backgroundColor: colors.surface }]}>
+                <Text style={[styles.addButtonText, { color: colors.accent }]}>+ Добавить предмет</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -174,7 +179,7 @@ export default function AddLessonScreen() {
 
         {/* Выбор преподавателя */}
         <View style={styles.section}>
-          <Text style={styles.label}>Преподаватель</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Преподаватель</Text>
           {!showNewTeacherInput ? (
             <>
               <View style={styles.optionsContainer}>
@@ -189,8 +194,10 @@ export default function AddLessonScreen() {
                     <Text
                       style={[
                         styles.optionText,
-                        selectedTeacherId === teacher.id && styles.selectedOptionText,
-                      ]}>
+                        { color: colors.textMuted },
+                        selectedTeacherId === teacher.id && [styles.selectedOptionText, { color: colors.inverseText }],
+                      ]}
+                    >
                       {teacher.name}
                     </Text>
                   </TouchableOpacity>
@@ -198,8 +205,8 @@ export default function AddLessonScreen() {
               </View>
               <TouchableOpacity
                 onPress={() => setShowNewTeacherInput(true)}
-                style={styles.addButton}>
-                <Text style={styles.addButtonText}>+ Добавить преподавателя</Text>
+                style={[styles.addButton, { borderColor: colors.borderSubtle, backgroundColor: colors.surface }]}>
+                <Text style={[styles.addButtonText, { color: colors.accent }]}>+ Добавить преподавателя</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -230,7 +237,7 @@ export default function AddLessonScreen() {
 
         {/* Тип урока */}
         <View style={styles.section}>
-          <Text style={styles.label}>Тип урока</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Тип урока</Text>
           <View style={styles.typeContainer}>
             {LESSON_TYPES.map((type) => (
               <TouchableOpacity
@@ -254,7 +261,7 @@ export default function AddLessonScreen() {
 
         {/* День недели */}
         <View style={styles.section}>
-          <Text style={styles.label}>День недели</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>День недели</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionsContainer}>
             {DAYS_OF_WEEK.map((day, index) => (
               <TouchableOpacity
@@ -278,10 +285,10 @@ export default function AddLessonScreen() {
 
         {/* Время */}
         <View style={styles.section}>
-          <Text style={styles.label}>Время</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Время</Text>
           <View style={styles.timeContainer}>
             <View style={styles.timeInputWrapper}>
-              <Text style={styles.timeLabel}>Начало</Text>
+              <Text style={[styles.timeLabel, { color: colors.textMuted }]}>Начало</Text>
               <TextInput
                 style={styles.timeInput}
                 placeholder="09:00"
@@ -291,7 +298,7 @@ export default function AddLessonScreen() {
               />
             </View>
             <View style={styles.timeInputWrapper}>
-              <Text style={styles.timeLabel}>Окончание</Text>
+              <Text style={[styles.timeLabel, { color: colors.textMuted }]}>Окончание</Text>
               <TextInput
                 style={styles.timeInput}
                 placeholder="10:30"
@@ -306,7 +313,7 @@ export default function AddLessonScreen() {
         {/* Неделя (только для формата "две недели") */}
         {settings.scheduleFormat === 2 && (
           <View style={styles.section}>
-            <Text style={styles.label}>Неделя</Text>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>Неделя</Text>
             <View style={styles.weekContainer}>
               <TouchableOpacity
                 onPress={() => setWeekNumber(null)}
@@ -356,7 +363,7 @@ export default function AddLessonScreen() {
 
         {/* Аудитория */}
         <View style={styles.section}>
-          <Text style={styles.label}>Аудитория (необязательно)</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Аудитория (необязательно)</Text>
           <TextInput
             style={styles.input}
             placeholder="Например: Аудитория 129"
@@ -394,6 +401,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: '#fff',
+    fontFamily: Typography.fonts.heading,
   },
   saveButton: {
     padding: 8,

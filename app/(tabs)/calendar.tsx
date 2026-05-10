@@ -1,32 +1,16 @@
+import { ensureRuCalendarLocale, getCalendarTheme } from '@/constants/calendar-theme';
+import { Typography } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { useExams } from '@/hooks/use-exams';
 import { useHomework } from '@/hooks/use-homework';
 import { useScheduleSettings } from '@/hooks/use-schedule-settings';
-import { useTasks } from '@/hooks/use-tasks';
 import { isControlWork, isTestWork } from '@/utils/exam-utils';
 import dayjs from 'dayjs';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Dimensions, FlatList, StyleSheet, Text, View, ViewToken } from 'react-native';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { Calendar } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Локализация
-LocaleConfig.locales['ru'] = {
-  monthNames: [
-    'Январь','Февраль','Март','Апрель','Май','Июнь',
-    'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'
-  ],
-  monthNamesShort: [
-    'Янв','Фев','Мар','Апр','Май','Июн',
-    'Июл','Авг','Сен','Окт','Ноя','Дек'
-  ],
-  dayNames: [
-    'Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'
-  ],
-  dayNamesShort: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-  firstDayOfWeek: 1, // Начинаем неделю с понедельника
-};
-LocaleConfig.defaultLocale = 'ru';
 
 // Получаем размеры экрана
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -49,12 +33,6 @@ interface MonthItemProps {
   };
   isActive: boolean;
   selected: string;
-  selectedDateEvents: {
-    tasks: any[];
-    homework: any[];
-    exams: any[];
-    total: number;
-  };
   markedDates: any;
   onDayPress: (day: any) => void;
 }
@@ -63,10 +41,12 @@ const MonthItem = React.memo(({
   item, 
   isActive, 
   selected, 
-  selectedDateEvents, 
   markedDates, 
   onDayPress 
 }: MonthItemProps) => {
+  const { colors, isDark } = useAppTheme();
+  const calendarTheme = useMemo(() => getCalendarTheme(isDark), [isDark]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const scaleAnim = useRef(new Animated.Value(isActive ? SCALE_FACTOR : 1)).current;
   
   useEffect(() => {
@@ -90,7 +70,7 @@ const MonthItem = React.memo(({
         ]}
       >
       {/* Заголовок месяца */}
-      <Text style={styles.monthTitle}>
+      <Text style={[styles.monthTitle, { color: colors.textPrimary, fontFamily: Typography.fonts.body }]}>
         {RUSSIAN_MONTHS[item.month - 1]}
       </Text>
 
@@ -109,17 +89,10 @@ const MonthItem = React.memo(({
           renderHeader={() => null}
           firstDay={1}
           theme={{
-            calendarBackground: '#fff',
-            textSectionTitleColor: '#000',
+            ...calendarTheme,
             monthTextColor: 'transparent',
             textMonthFontSize: 1,
-            textMonthFontFamily: 'serif',
-            textDayFontFamily: 'serif',
-            textDayHeaderFontFamily: 'serif',
-            todayTextColor: '#C89153',
-            arrowColor: '#C89153',
-            textDayFontSize: 14,
-            textDayHeaderFontSize: 12,
+            textMonthFontFamily: Typography.fonts.body,
           }}
           style={{
             paddingBottom: 5,
@@ -142,24 +115,46 @@ interface MonthStatsProps {
 }
 
 const MonthStats = React.memo(({ stats }: MonthStatsProps) => {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   if (!stats) return null;
 
   return (
-    <View style={styles.statsContainer}>
-      <Text style={styles.statsTitle}>Статистика месяца</Text>
-      
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Контрольные/проверочные</Text>
-          <Text style={styles.statValue}>
+    <View style={[styles.statsContainer, { backgroundColor: colors.surface }]}>
+      <View style={styles.statsHeader}>
+        <View style={[styles.statsHeaderLine, { backgroundColor: colors.accent }]} />
+        <Text style={[styles.statsTitle, { color: colors.textPrimary, fontFamily: Typography.fonts.body }]}>
+          Статистика месяца
+        </Text>
+      </View>
+
+      <View style={[styles.legendInline, { borderBottomColor: colors.borderSubtle }]}>
+        <View style={styles.legendInlineItem}>
+          <View style={[styles.legendDot, { backgroundColor: colors.warning }]} />
+          <Text style={[styles.legendText, { color: colors.textMuted }]}>Несданное</Text>
+        </View>
+        <View style={styles.legendInlineItem}>
+          <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+          <Text style={[styles.legendText, { color: colors.textMuted }]}>Выполнено</Text>
+        </View>
+      </View>
+
+      <View style={[styles.statsDualPanel, { backgroundColor: colors.bgPrimary, borderColor: colors.borderSubtle }]}>
+        <View style={styles.statCell}>
+          <Text style={[styles.statValue, { color: colors.accent, fontFamily: Typography.fonts.body }]}>
             {stats.controlAndTestWorks}
           </Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted, fontFamily: Typography.fonts.body }]}>
+            Работы
+          </Text>
         </View>
-        
-        <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Домашние задания</Text>
-          <Text style={styles.statValue}>
+        <View style={[styles.statsDualDivider, { backgroundColor: colors.borderSubtle }]} />
+        <View style={styles.statCell}>
+          <Text style={[styles.statValue, { color: colors.accent, fontFamily: Typography.fonts.body }]}>
             {stats.homework}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.textMuted, fontFamily: Typography.fonts.body }]}>
+            Домашка
           </Text>
         </View>
       </View>
@@ -170,6 +165,12 @@ const MonthStats = React.memo(({ stats }: MonthStatsProps) => {
 MonthStats.displayName = 'MonthStats';
 
 export default function CalendarScreen() {
+  useEffect(() => {
+    ensureRuCalendarLocale();
+  }, []);
+
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [selected, setSelected] = useState(dayjs().format("YYYY-MM-DD"));
   const [activeMonthId, setActiveMonthId] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
@@ -178,14 +179,12 @@ export default function CalendarScreen() {
   }).current;
 
   // Используем хуки для получения данных
-  const { tasks, reload: reloadTasks } = useTasks();
   const { homework, reload: reloadHomework } = useHomework();
   const { exams, reload: reloadExams } = useExams();
   const { settings } = useScheduleSettings();
 
   // Перезагружаем данные для обновления статистики при смене месяца
   useEffect(() => {
-    reloadTasks();
     reloadHomework();
     reloadExams();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -194,90 +193,69 @@ export default function CalendarScreen() {
   // Перезагружаем данные при возврате на экран
   useFocusEffect(
     useCallback(() => {
-      reloadTasks();
       reloadHomework();
       reloadExams();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
   );
 
-  // Получаем события на выбранную дату
-  const selectedDateEvents = useMemo(() => {
-    const selectedTasks = tasks.filter(task => task.date === selected);
-    const selectedHomework = homework.filter(hw => hw.due_date === selected);
-    const selectedExams = exams.filter(exam => exam.date === selected);
-    
-    return {
-      tasks: selectedTasks,
-      homework: selectedHomework,
-      exams: selectedExams,
-      total: selectedTasks.length + selectedHomework.length + selectedExams.length
-    };
-  }, [tasks, homework, exams, selected]);
-
-  // Подготовка markedDates с событиями в виде точек
+  // Точки: оранжевый (warning) — есть невыполненные ДЗ/работы; зелёный (success) — всё сдано
   const markedDates = useMemo(() => {
-    const marked: any = {};
-    const dateEvents: Record<string, { hasHomework: boolean; hasControlWork: boolean; hasTestWork: boolean }> = {};
+    const marked: Record<string, any> = {};
+    const byDate: Record<string, { hasItems: boolean; pending: boolean }> = {};
 
-    // Собираем все события по датам
-    homework.forEach(hw => {
-      if (hw.due_date) {
-        if (!dateEvents[hw.due_date]) {
-          dateEvents[hw.due_date] = { hasHomework: false, hasControlWork: false, hasTestWork: false };
-        }
-        dateEvents[hw.due_date].hasHomework = true;
+    const touch = (date: string) => {
+      if (!byDate[date]) {
+        byDate[date] = { hasItems: false, pending: false };
+      }
+    };
+
+    homework.forEach((hw) => {
+      if (!hw.due_date) return;
+      touch(hw.due_date);
+      byDate[hw.due_date].hasItems = true;
+      if (hw.is_completed !== 1) {
+        byDate[hw.due_date].pending = true;
       }
     });
 
-    exams.forEach(exam => {
-      if (exam.date) {
-        if (!dateEvents[exam.date]) {
-          dateEvents[exam.date] = { hasHomework: false, hasControlWork: false, hasTestWork: false };
-        }
-        if (isControlWork(exam.type)) {
-          dateEvents[exam.date].hasControlWork = true;
-        } else if (isTestWork(exam.type)) {
-          dateEvents[exam.date].hasTestWork = true;
-        }
+    exams.forEach((exam) => {
+      if (!exam.date) return;
+      touch(exam.date);
+      byDate[exam.date].hasItems = true;
+      if (exam.is_completed !== 1) {
+        byDate[exam.date].pending = true;
       }
     });
 
-    // Создаем разметку для каждой даты с событиями
-    Object.keys(dateEvents).forEach(date => {
-      const events = dateEvents[date];
-      const dots: { key: string; color: string }[] = [];
-
-      if (events.hasHomework) {
-        dots.push({ key: 'homework', color: '#4CAF50' });
-      }
-      if (events.hasControlWork) {
-        dots.push({ key: 'control', color: '#E25A2C' });
-      }
-      if (events.hasTestWork) {
-        dots.push({ key: 'test', color: '#FFC107' });
-      }
-
+    Object.keys(byDate).forEach((date) => {
+      const { hasItems, pending } = byDate[date];
+      if (!hasItems) return;
+      const dots = [
+        {
+          key: pending ? 'pending' : 'done',
+          color: pending ? colors.warning : colors.success,
+        },
+      ];
       marked[date] = {
-        dots: dots,
+        dots,
         selected: date === selected,
-        selectedColor: date === selected ? '#C89153' : undefined,
-        selectedTextColor: date === selected ? '#fff' : undefined,
-        selectedDotColor: date === selected ? '#fff' : undefined,
+        selectedColor: date === selected ? colors.accent : undefined,
+        selectedTextColor: date === selected ? colors.inverseText : undefined,
+        selectedDotColor: date === selected ? colors.inverseText : undefined,
       };
     });
 
-    // Отмечаем выбранную дату, даже если на ней нет событий
     if (selected && !marked[selected]) {
       marked[selected] = {
         selected: true,
-        selectedColor: '#C89153',
-        selectedTextColor: '#fff',
+        selectedColor: colors.accent,
+        selectedTextColor: colors.inverseText,
       };
     }
 
     return marked;
-  }, [homework, exams, selected]);
+  }, [homework, exams, selected, colors]);
 
   // создаём список месяцев в хронологическом порядке на основе периода обучения
   const months = useMemo(() => {
@@ -405,10 +383,10 @@ export default function CalendarScreen() {
   }).current;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
       {/* Заголовок страницы */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Календарь</Text>
+      <View style={[styles.header, { backgroundColor: colors.bgPrimary }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Календарь</Text>
       </View>
       
       <FlatList
@@ -444,7 +422,6 @@ export default function CalendarScreen() {
               item={item}
               isActive={activeMonthId === item.id}
               selected={selected}
-              selectedDateEvents={selectedDateEvents}
               markedDates={markedDates}
               onDayPress={(day) => {
                 setSelected(day.dateString);
@@ -466,23 +443,24 @@ export default function CalendarScreen() {
 }
 
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useAppTheme>['colors']) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.bgPrimary,
   },
   header: {
     paddingTop: 30,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#000',
+    backgroundColor: colors.bgPrimary,
     alignItems: 'flex-start',
   },
   headerTitle: {
     fontSize: 40,
     fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'Glanz',
+    color: colors.textPrimary,
+    fontFamily: Typography.fonts.heading,
   },
   listContent: {
     paddingTop: 10,
@@ -500,7 +478,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIDE_PADDING,
   },
   monthBlock: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     width: '100%',
     borderRadius: 20,
     paddingTop: 12,
@@ -510,7 +488,7 @@ const styles = StyleSheet.create({
     minHeight: 360,
   },
   monthBlockActive: {
-    shadowColor: '#000',
+    shadowColor: colors.textPrimary,
     shadowOffset: {
       width: 0,
       height: 4,
@@ -523,49 +501,99 @@ const styles = StyleSheet.create({
     fontSize: 28,
     marginBottom: 8,
     marginLeft: 10,
-    color: '#000',
-    fontFamily: 'serif',
+    color: colors.textPrimary,
+    fontFamily: Typography.fonts.body,
   },
   calendarWrapper: {
     width: '100%',
   },
   statsWrapper: {
     paddingHorizontal: SIDE_PADDING,
-    paddingBottom: 80,
+    paddingBottom: 96,
     paddingTop: 0,
-    marginTop: -20,
+    marginTop: -52,
   },
   statsContainer: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  statsHeaderLine: {
+    width: 3,
+    height: 16,
+    borderRadius: 2,
   },
   statsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 10,
-    fontFamily: 'serif',
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
-  statsRow: {
+  legendInline: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     flexWrap: 'wrap',
+    columnGap: 16,
+    rowGap: 6,
+    paddingBottom: 12,
+    marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  statItem: {
-    minWidth: '45%',
-    marginBottom: 8,
+  legendInlineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  legendText: {
+    fontSize: 11,
+  },
+  statsDualPanel: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+    minHeight: 88,
+  },
+  statCell: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+  },
+  statsDualDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
   },
   statLabel: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 5,
-    fontFamily: 'serif',
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textMuted,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    textAlign: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: '700',
-    color: '#C89153',
-    fontFamily: 'serif',
+    color: colors.accent,
+    lineHeight: 36,
+    fontVariant: ['tabular-nums'],
   },
 });

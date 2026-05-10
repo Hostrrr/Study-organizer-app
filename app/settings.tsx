@@ -1,4 +1,9 @@
-import { DARK_CALENDAR_THEME } from '@/constants/calendar-theme';
+import { ensureRuCalendarLocale, getCalendarTheme } from '@/constants/calendar-theme';
+import { clearDebugData, runDebugSeeds } from '@/database/debug-seeds';
+import { Typography } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
+import { useDebugSeeds } from '@/hooks/use-debug-seeds';
+import { ThemePreference, useThemePreference } from '@/hooks/use-theme-preference';
 import { HolidayPeriod, useScheduleSettings } from '@/hooks/use-schedule-settings';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -11,13 +16,24 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  Switch,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
 export default function SettingsScreen() {
+  const { colors, isDark } = useAppTheme();
+  const calendarTheme = getCalendarTheme(isDark);
+
+  useEffect(() => {
+    ensureRuCalendarLocale();
+  }, []);
+
+  const { themePreference, setThemePreference } = useThemePreference();
   const { settings, isLoading, updateSettings, generateTimeSlots, addHoliday, removeHoliday } = useScheduleSettings();
+  const { debugSeedsEnabled, setDebugSeedsEnabled } = useDebugSeeds();
+  const isSeedUiEnabled = __DEV__ || process.env.EXPO_PUBLIC_ENABLE_DEBUG_SEEDS === 'true';
 
   const [firstLessonStartTime, setFirstLessonStartTime] = useState(settings.firstLessonStartTime);
   const [lessonDuration, setLessonDuration] = useState(settings.lessonDuration.toString());
@@ -186,27 +202,79 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleToggleDebugSeeds = async (value: boolean) => {
+    const ok = await setDebugSeedsEnabled(value);
+    if (!ok) {
+      Alert.alert('Ошибка', 'Не удалось сохранить настройку сидов');
+      return;
+    }
+  };
+
+  const handleRunSeedsNow = () => {
+    Alert.alert(
+      'Применить отладочные сиды',
+      'Текущие данные будут очищены и заменены тестовыми. Продолжить?',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Применить',
+          style: 'destructive',
+          onPress: () => {
+            const result = runDebugSeeds({ forceReset: true });
+            if (result.ok) {
+              Alert.alert('Готово', result.message);
+            } else {
+              Alert.alert('Ошибка', result.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearAllData = () => {
+    Alert.alert(
+      'Очистить все данные',
+      'Будут удалены все данные приложения. Это действие нельзя отменить.',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Очистить',
+          style: 'destructive',
+          onPress: () => {
+            const result = clearDebugData();
+            if (result.ok) {
+              Alert.alert('Готово', result.message);
+            } else {
+              Alert.alert('Ошибка', result.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const timeSlots = generateTimeSlots();
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Загрузка...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.bgPrimary }]}>
+        <Text style={[styles.loadingText, { color: colors.textPrimary }]}>Загрузка...</Text>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bgPrimary }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.bgPrimary }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color="#fff" />
+          <Ionicons name="close" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Настройки времени расписания</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Настройки времени расписания</Text>
         <View style={styles.closeButtonPlaceholder} />
       </View>
 
@@ -215,18 +283,80 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={styles.section}>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Тема приложения</Text>
+          <View style={styles.themeRow}>
+            {(['system', 'light', 'dark'] as ThemePreference[]).map((mode) => {
+              const isActive = themePreference === mode;
+              const label =
+                mode === 'system' ? 'Системная' : mode === 'light' ? 'Светлая' : 'Тёмная';
+              return (
+                <TouchableOpacity
+                  key={mode}
+                  onPress={() => setThemePreference(mode)}
+                  style={[
+                    styles.themeChip,
+                    {
+                      backgroundColor: isActive ? colors.accent : colors.surface,
+                      borderColor: isActive ? colors.accent : colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.themeChipText,
+                      { color: isActive ? colors.inverseText : colors.textPrimary },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {isSeedUiEnabled && (
+          <View style={styles.section}>
+            <Text style={[styles.label, { color: colors.textPrimary }]}>Отладочные сиды</Text>
+            <View style={[styles.debugCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+              <View style={styles.debugRow}>
+                <View style={styles.debugTextContainer}>
+                  <Text style={[styles.debugTitle, { color: colors.textPrimary }]}>Автозапуск сидов</Text>
+                  <Text style={[styles.debugHint, { color: colors.textMuted }]}>
+                    При старте приложения будут подставляться тестовые данные
+                  </Text>
+                </View>
+                <Switch value={debugSeedsEnabled} onValueChange={handleToggleDebugSeeds} />
+              </View>
+
+              <View style={styles.debugButtonsRow}>
+                <TouchableOpacity onPress={handleRunSeedsNow} style={styles.debugActionButton}>
+                  <Text style={styles.debugActionButtonText}>Заполнить сейчас</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleClearAllData}
+                  style={[styles.debugActionButton, styles.debugDangerButton]}
+                >
+                  <Text style={styles.debugActionButtonText}>Очистить всё</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Время начала первого урока */}
         <View style={styles.section}>
-          <Text style={styles.label}>Время начала первого урока</Text>
+          <Text style={[styles.label, { color: colors.textPrimary }]}>Время начала первого урока</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.borderSubtle }]}
             placeholder="09:00"
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textMuted}
             value={firstLessonStartTime}
             onChangeText={setFirstLessonStartTime}
             keyboardType="default"
           />
-          <Text style={styles.hint}>Формат: HH:mm (например, 09:00)</Text>
+          <Text style={[styles.hint, { color: colors.textMuted }]}>Формат: HH:mm (например, 09:00)</Text>
         </View>
 
         {/* Длительность урока */}
@@ -493,7 +623,7 @@ export default function SettingsScreen() {
                       },
                     }}
                     firstDay={1}
-                    theme={DARK_CALENDAR_THEME}
+                    theme={calendarTheme}
                   />
                 </View>
               )}
@@ -524,7 +654,7 @@ export default function SettingsScreen() {
                       },
                     }}
                     firstDay={1}
-                    theme={DARK_CALENDAR_THEME}
+                    theme={calendarTheme}
                   />
                 </View>
               )}
@@ -688,23 +818,23 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#F7F8FA',
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#F7F8FA',
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 16,
   },
   header: {
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#000',
+    backgroundColor: '#F7F8FA',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -719,8 +849,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'Glanz',
+    color: '#121417',
+    fontFamily: Typography.fonts.heading,
     flex: 1,
     textAlign: 'center',
   },
@@ -731,23 +861,80 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 30,
   },
+  themeRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  themeChip: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  themeChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  debugCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    gap: 12,
+  },
+  debugRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  debugTextContainer: {
+    flex: 1,
+  },
+  debugTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  debugHint: {
+    fontSize: 12,
+  },
+  debugButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  debugActionButton: {
+    flex: 1,
+    backgroundColor: '#C89153',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  debugDangerButton: {
+    backgroundColor: '#D65845',
+  },
+  debugActionButtonText: {
+    color: '#000',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   label: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: '#121417',
     marginBottom: 12,
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    color: '#fff',
+    color: '#121417',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
   },
   hint: {
-    color: '#666',
+    color: '#6D7680',
     fontSize: 12,
     marginTop: 8,
   },
@@ -761,7 +948,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -770,7 +957,7 @@ const styles = StyleSheet.create({
     borderColor: '#C89153',
   },
   longBreakOptionText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 14,
   },
   longBreakOptionTextSelected: {
@@ -787,17 +974,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   formatOptionSelected: {
     borderColor: '#C89153',
-    backgroundColor: '#2a2a2a',
+    backgroundColor: '#F5E7D5',
   },
   formatOptionText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 16,
     marginLeft: 12,
   },
@@ -806,7 +993,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   previewContainer: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -830,12 +1017,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   previewSlotTimeText: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 14,
     fontWeight: '500',
   },
   previewSlotSeparator: {
-    color: '#666',
+    color: '#6D7680',
     fontSize: 14,
     marginHorizontal: 8,
   },
@@ -874,14 +1061,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   holidayItem: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
   },
   holidayItemContent: {
     flex: 1,
@@ -893,12 +1080,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   holidayDates: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 14,
     marginBottom: 4,
   },
   holidayDuration: {
-    color: '#666',
+    color: '#6D7680',
     fontSize: 12,
   },
   removeHolidayButton: {
@@ -906,33 +1093,33 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   addHolidayForm: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
   },
   dateButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     marginBottom: 12,
   },
   dateButtonText: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 16,
   },
   dateButtonIcon: {
     fontSize: 20,
   },
   calendarContainer: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 8,
     marginBottom: 12,
@@ -948,7 +1135,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   cancelHolidayButtonText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 14,
   },
   confirmHolidayButton: {

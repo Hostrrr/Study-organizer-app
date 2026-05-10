@@ -1,4 +1,6 @@
-import { DARK_CALENDAR_THEME } from '@/constants/calendar-theme';
+import { ensureRuCalendarLocale, getCalendarTheme } from '@/constants/calendar-theme';
+import { Typography } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { deleteAllLessons } from '@/database/queries';
 import { useFirstLaunch } from '@/hooks/use-first-launch';
 import { useLessons } from '@/hooks/use-lessons';
@@ -22,7 +24,7 @@ import {
   View,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const DAYS_OF_WEEK = [
   'Понедельник',
@@ -51,13 +53,19 @@ interface LessonForm {
 type StartupStep = 'settings' | 'schedule';
 
 export default function StartupScreen() {
+  const { colors, isDark } = useAppTheme();
+  const calendarTheme = useMemo(() => getCalendarTheme(isDark), [isDark]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  React.useEffect(() => {
+    ensureRuCalendarLocale();
+  }, []);
+
   const { subjects, create: createSubject } = useSubjects();
   const { teachers, create: createTeacher } = useTeachers();
   const { create: createLesson, reload: reloadLessons } = useLessons();
   const { isFirstLaunch, completeFirstLaunch } = useFirstLaunch();
   const { generateTimeSlots, settings, updateSettings, addHoliday, removeHoliday } = useScheduleSettings();
-  const insets = useSafeAreaInsets();
-  
   // Если это не первый запуск, значит мы в режиме редактирования (модальный экран)
   const isModal = !isFirstLaunch;
 
@@ -475,19 +483,19 @@ export default function StartupScreen() {
     
     return (
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.bgPrimary }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <SafeAreaView style={styles.safeAreaHeader} edges={['top']}>
+        <SafeAreaView style={[styles.safeAreaHeader, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
           {isModal && (
             <View style={styles.closeButtonContainer}>
               <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#fff" />
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
           )}
-          <Animated.View style={[styles.header, { paddingTop: isModal ? 12 : headerPaddingTop, paddingBottom: headerPaddingBottom }]}>
+          <Animated.View style={[styles.header, { backgroundColor: colors.bgPrimary, paddingTop: isModal ? 12 : headerPaddingTop, paddingBottom: headerPaddingBottom }]}>
             <View style={styles.closeButtonPlaceholder} />
             <View style={styles.headerTitleContainer}>
               <Animated.View style={{ height: titleHeight, overflow: 'hidden' }}>
@@ -519,7 +527,7 @@ export default function StartupScreen() {
             <TextInput
               style={styles.input}
               placeholder="09:00"
-              placeholderTextColor="#666"
+              placeholderTextColor={colors.textMuted}
               value={firstLessonStartTime}
               onChangeText={setFirstLessonStartTime}
               keyboardType="default"
@@ -533,7 +541,7 @@ export default function StartupScreen() {
             <TextInput
               style={styles.input}
               placeholder="90"
-              placeholderTextColor="#666"
+              placeholderTextColor={colors.textMuted}
               value={lessonDuration}
               onChangeText={setLessonDuration}
               keyboardType="numeric"
@@ -547,7 +555,7 @@ export default function StartupScreen() {
             <TextInput
               style={styles.input}
               placeholder="10"
-              placeholderTextColor="#666"
+              placeholderTextColor={colors.textMuted}
               value={breakDuration}
               onChangeText={setBreakDuration}
               keyboardType="numeric"
@@ -597,7 +605,7 @@ export default function StartupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="20"
-                  placeholderTextColor="#666"
+                  placeholderTextColor={colors.textMuted}
                   value={longBreakDuration}
                   onChangeText={setLongBreakDuration}
                   keyboardType="numeric"
@@ -686,7 +694,7 @@ export default function StartupScreen() {
                         onPress={() => handleRemoveHoliday(holiday.id)}
                         style={styles.removeHolidayButton}
                       >
-                        <Ionicons name="trash-outline" size={20} color="#ff4444" />
+                        <Ionicons name="trash-outline" size={20} color={colors.danger} />
                       </TouchableOpacity>
                     </View>
                   );
@@ -701,7 +709,7 @@ export default function StartupScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Например: Зимние каникулы"
-                  placeholderTextColor="#666"
+                  placeholderTextColor={colors.textMuted}
                   value={holidayName}
                   onChangeText={setHolidayName}
                 />
@@ -727,11 +735,11 @@ export default function StartupScreen() {
                       markedDates={{
                         [holidayStartDate]: {
                           selected: true,
-                          selectedColor: '#C89153',
+                          selectedColor: colors.accent,
                         },
                       }}
                       firstDay={1}
-                      theme={DARK_CALENDAR_THEME}
+                      theme={calendarTheme}
                     />
                   </View>
                 )}
@@ -758,11 +766,11 @@ export default function StartupScreen() {
                       markedDates={{
                         [holidayEndDate]: {
                           selected: true,
-                          selectedColor: '#C89153',
+                          selectedColor: colors.accent,
                         },
                       }}
                       firstDay={1}
-                      theme={DARK_CALENDAR_THEME}
+                      theme={calendarTheme}
                     />
                   </View>
                 )}
@@ -820,29 +828,11 @@ export default function StartupScreen() {
                   markedDates={{
                     [academicYearStart]: {
                       selected: true,
-                      selectedColor: '#C89153',
+                      selectedColor: colors.accent,
                     },
                   }}
                   firstDay={1}
-                  theme={{
-                    calendarBackground: '#1a1a1a',
-                    textSectionTitleColor: '#fff',
-                    selectedDayBackgroundColor: '#C89153',
-                    selectedDayTextColor: '#000',
-                    todayTextColor: '#C89153',
-                    dayTextColor: '#fff',
-                    textDisabledColor: '#666',
-                    dotColor: '#C89153',
-                    selectedDotColor: '#000',
-                    arrowColor: '#C89153',
-                    monthTextColor: '#fff',
-                    textDayFontFamily: 'serif',
-                    textMonthFontFamily: 'serif',
-                    textDayHeaderFontFamily: 'serif',
-                    textDayFontSize: 14,
-                    textMonthFontSize: 16,
-                    textDayHeaderFontSize: 12,
-                  }}
+                  theme={calendarTheme}
                 />
               </View>
             )}
@@ -869,29 +859,11 @@ export default function StartupScreen() {
                   markedDates={{
                     [academicYearEnd]: {
                       selected: true,
-                      selectedColor: '#C89153',
+                      selectedColor: colors.accent,
                     },
                   }}
                   firstDay={1}
-                  theme={{
-                    calendarBackground: '#1a1a1a',
-                    textSectionTitleColor: '#fff',
-                    selectedDayBackgroundColor: '#C89153',
-                    selectedDayTextColor: '#000',
-                    todayTextColor: '#C89153',
-                    dayTextColor: '#fff',
-                    textDisabledColor: '#666',
-                    dotColor: '#C89153',
-                    selectedDotColor: '#000',
-                    arrowColor: '#C89153',
-                    monthTextColor: '#fff',
-                    textDayFontFamily: 'serif',
-                    textMonthFontFamily: 'serif',
-                    textDayHeaderFontFamily: 'serif',
-                    textDayFontSize: 14,
-                    textMonthFontSize: 16,
-                    textDayHeaderFontSize: 12,
-                  }}
+                  theme={calendarTheme}
                 />
               </View>
             )}
@@ -926,24 +898,24 @@ export default function StartupScreen() {
   // Шаг 2: Предметы и расписание
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bgPrimary }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <SafeAreaView style={styles.safeAreaHeader} edges={['top']}>
+      <SafeAreaView style={[styles.safeAreaHeader, { backgroundColor: colors.bgPrimary }]} edges={['top']}>
         {isModal && (
           <View style={styles.closeButtonContainer}>
             <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#fff" />
+              <Ionicons name="close" size={24} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
         )}
-        <Animated.View style={[styles.header, { paddingTop: isModal ? 12 : headerPaddingTopStep2, paddingBottom: headerPaddingBottomStep2 }]}>
+        <Animated.View style={[styles.header, { backgroundColor: colors.bgPrimary, paddingTop: isModal ? 12 : headerPaddingTopStep2, paddingBottom: headerPaddingBottomStep2 }]}>
           {isModal ? (
             <View style={styles.closeButtonPlaceholder} />
           ) : (
             <TouchableOpacity onPress={() => setCurrentStep('settings')} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#C89153" />
+              <Ionicons name="arrow-back" size={24} color={colors.accent} />
             </TouchableOpacity>
           )}
           <View style={styles.headerTitleContainer}>
@@ -991,7 +963,7 @@ export default function StartupScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Название предмета"
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 value={newSubjectName}
                 onChangeText={setNewSubjectName}
                 autoFocus
@@ -1038,7 +1010,7 @@ export default function StartupScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Имя преподавателя"
-                placeholderTextColor="#666"
+                placeholderTextColor={colors.textMuted}
                 value={newTeacherName}
                 onChangeText={setNewTeacherName}
                 autoFocus
@@ -1249,7 +1221,7 @@ export default function StartupScreen() {
                   <TextInput
                     style={styles.lessonInput}
                     placeholder="Например: Аудитория 129"
-                    placeholderTextColor="#666"
+                    placeholderTextColor={colors.textMuted}
                     value={lesson.room}
                     onChangeText={(value) => updateLesson(index, 'room', value)}
                   />
@@ -1344,17 +1316,17 @@ export default function StartupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ReturnType<typeof useAppTheme>['colors']) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: colors.bgPrimary,
   },
   safeAreaHeader: {
-    backgroundColor: '#000',
+    backgroundColor: colors.bgPrimary,
   },
   header: {
     paddingHorizontal: 20,
-    backgroundColor: '#000',
+    backgroundColor: colors.bgPrimary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1402,19 +1374,19 @@ const styles = StyleSheet.create({
   dragHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#666',
+    backgroundColor: colors.textMuted,
     borderRadius: 2,
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'Glanz',
+    color: colors.textPrimary,
+    fontFamily: Typography.fonts.heading,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#999',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   content: {
@@ -1431,7 +1403,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   optionsContainer: {
@@ -1444,33 +1416,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   selectedOption: {
-    backgroundColor: '#C89153',
-    borderColor: '#C89153',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   optionText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 12,
   },
   selectedOptionText: {
-    color: '#000',
+    color: colors.inverseText,
     fontWeight: '600',
   },
   addButton: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
     borderStyle: 'dashed',
   },
   addButtonText: {
-    color: '#C89153',
+    color: colors.accent,
     fontSize: 14,
     textAlign: 'center',
   },
@@ -1478,17 +1450,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   input: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
     marginBottom: 10,
   },
   hint: {
-    color: '#666',
+    color: colors.textMuted,
     fontSize: 12,
     marginTop: 4,
   },
@@ -1502,20 +1474,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   longBreakOptionSelected: {
-    backgroundColor: '#C89153',
-    borderColor: '#C89153',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   longBreakOptionText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 14,
   },
   longBreakOptionTextSelected: {
-    color: '#000',
+    color: colors.inverseText,
     fontWeight: '600',
   },
   longBreakDurationContainer: {
@@ -1531,25 +1503,25 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderWidth: 2,
     borderColor: 'transparent',
     alignItems: 'center',
   },
   formatOptionSelected: {
-    backgroundColor: '#C89153',
-    borderColor: '#C89153',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   formatOptionText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 14,
   },
   formatOptionTextSelected: {
-    color: '#000',
+    color: colors.inverseText,
     fontWeight: '600',
   },
   previewContainer: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -1561,7 +1533,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   previewSlotNumber: {
-    color: '#C89153',
+    color: colors.accent,
     fontSize: 16,
     fontWeight: '600',
     width: 30,
@@ -1573,12 +1545,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   previewSlotTimeText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '500',
   },
   previewSlotSeparator: {
-    color: '#666',
+    color: colors.textMuted,
     fontSize: 14,
     marginHorizontal: 8,
   },
@@ -1591,11 +1563,11 @@ const styles = StyleSheet.create({
   addHolidayButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#C89153',
+    backgroundColor: colors.accent,
     borderRadius: 12,
   },
   addHolidayButtonText: {
-    color: '#000',
+    color: colors.inverseText,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -1604,31 +1576,31 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   holidayItem: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   holidayItemContent: {
     flex: 1,
   },
   holidayName: {
-    color: '#C89153',
+    color: colors.accent,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
   },
   holidayDates: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 14,
     marginBottom: 4,
   },
   holidayDuration: {
-    color: '#666',
+    color: colors.textMuted,
     fontSize: 12,
   },
   removeHolidayButton: {
@@ -1636,33 +1608,33 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   addHolidayForm: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   dateButton: {
-    backgroundColor: '#000',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
     marginBottom: 12,
   },
   dateButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
   },
   dateButtonIcon: {
     fontSize: 20,
   },
   calendarContainer: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 8,
     marginBottom: 12,
@@ -1678,17 +1650,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   cancelHolidayButtonText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 14,
   },
   confirmHolidayButton: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#C89153',
+    backgroundColor: colors.accent,
     borderRadius: 8,
   },
   confirmHolidayButtonText: {
-    color: '#000',
+    color: colors.inverseText,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1702,17 +1674,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelNewText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 14,
   },
   confirmNewButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#C89153',
+    backgroundColor: colors.accent,
     borderRadius: 8,
   },
   confirmNewText: {
-    color: '#000',
+    color: colors.inverseText,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -1725,36 +1697,36 @@ const styles = StyleSheet.create({
   addLessonButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#C89153',
+    backgroundColor: colors.accent,
     borderRadius: 12,
   },
   addLessonButtonText: {
-    color: '#000',
+    color: colors.inverseText,
     fontSize: 12,
     fontWeight: '600',
   },
   emptyState: {
     padding: 40,
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 12,
   },
   emptyStateText: {
-    color: '#666',
+    color: colors.textMuted,
     fontSize: 16,
     marginBottom: 4,
   },
   emptyStateSubtext: {
-    color: '#444',
+    color: colors.textMuted,
     fontSize: 12,
   },
   lessonCard: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   lessonCardHeader: {
     flexDirection: 'row',
@@ -1763,12 +1735,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   lessonNumber: {
-    color: '#C89153',
+    color: colors.accent,
     fontSize: 16,
     fontWeight: '600',
   },
   removeButton: {
-    color: '#ff4444',
+    color: colors.danger,
     fontSize: 20,
     fontWeight: '600',
   },
@@ -1776,7 +1748,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   lessonFieldLabel: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 12,
     marginBottom: 8,
   },
@@ -1789,20 +1761,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: '#000',
+    backgroundColor: colors.inverseText,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   lessonOptionSelected: {
-    backgroundColor: '#C89153',
-    borderColor: '#C89153',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   lessonOptionText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 11,
   },
   lessonOptionTextSelected: {
-    color: '#000',
+    color: colors.inverseText,
     fontWeight: '600',
   },
   typeContainer: {
@@ -1814,42 +1786,42 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#000',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
   },
   selectedTypeOption: {
-    backgroundColor: '#C89153',
-    borderColor: '#C89153',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   typeOptionText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 12,
   },
   selectedTypeOptionText: {
-    color: '#000',
+    color: colors.inverseText,
     fontWeight: '600',
   },
   timeSlotOption: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#000',
+    backgroundColor: colors.surfaceMuted,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   timeSlotOptionSelected: {
-    backgroundColor: '#C89153',
-    borderColor: '#C89153',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   timeSlotText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 12,
   },
   timeSlotTextSelected: {
-    color: '#000',
+    color: colors.inverseText,
     fontWeight: '600',
   },
   weekContainer: {
@@ -1861,34 +1833,34 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
-    backgroundColor: '#000',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
     alignItems: 'center',
   },
   weekOptionSelected: {
-    backgroundColor: '#C89153',
-    borderColor: '#C89153',
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   weekOptionText: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 12,
   },
   weekOptionTextSelected: {
-    color: '#000',
+    color: colors.inverseText,
     fontWeight: '600',
   },
   lessonInput: {
-    backgroundColor: '#000',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 12,
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   completeButton: {
-    backgroundColor: '#C89153',
+    backgroundColor: colors.accent,
     borderRadius: 16,
     padding: 18,
     alignItems: 'center',
@@ -1896,46 +1868,46 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   completeButtonText: {
-    color: '#000',
+    color: colors.inverseText,
     fontSize: 18,
     fontWeight: '700',
   },
   dropdownButton: {
-    backgroundColor: '#000',
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   dropdownButtonText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 14,
     flex: 1,
   },
   dropdownButtonTextPlaceholder: {
-    color: '#666',
+    color: colors.textMuted,
   },
   dropdownArrow: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 12,
     marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     width: '80%',
     maxHeight: '70%',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.borderSubtle,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1943,15 +1915,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: colors.borderSubtle,
   },
   modalTitle: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   modalClose: {
-    color: '#999',
+    color: colors.textMuted,
     fontSize: 24,
     fontWeight: '300',
   },
@@ -1961,10 +1933,10 @@ const styles = StyleSheet.create({
   modalOption: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    borderBottomColor: colors.borderSubtle,
   },
   modalOptionText: {
-    color: '#fff',
+    color: colors.textPrimary,
     fontSize: 16,
   },
 });

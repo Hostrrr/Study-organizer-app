@@ -1,12 +1,18 @@
-import { DARK_CALENDAR_THEME } from '@/constants/calendar-theme';
+import AssessmentActions from '@/components/assessment-actions';
+import ScreenContainer from '@/components/ui/screen-container';
+import ScreenHeader from '@/components/ui/screen-header';
+import { ensureRuCalendarLocale, getCalendarTheme } from '@/constants/calendar-theme';
+import { Typography } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { getExamsBySubjectId, getExamsBySubjectIdAndDate, getHomeworkByLessonId, getLessonById, getNotesByLessonId } from '@/database/queries';
+import { useAssessmentActions } from '@/hooks/use-assessment-actions';
 import { useExams } from '@/hooks/use-exams';
 import { useHomework } from '@/hooks/use-homework';
 import { useNotes } from '@/hooks/use-notes';
 import { Exam, Homework, Lesson, Note } from '@/types/db';
 import { isControlWork, isTestWork } from '@/utils/exam-utils';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -19,27 +25,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
-
-// Локализация календаря
-LocaleConfig.locales['ru'] = {
-  monthNames: [
-    'Январь','Февраль','Март','Апрель','Май','Июнь',
-    'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'
-  ],
-  monthNamesShort: [
-    'Янв','Фев','Мар','Апр','Май','Июн',
-    'Июл','Авг','Сен','Окт','Ноя','Дек'
-  ],
-  dayNames: [
-    'Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'
-  ],
-  dayNamesShort: ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'],
-  firstDayOfWeek: 1,
-};
-LocaleConfig.defaultLocale = 'ru';
+import { Calendar } from 'react-native-calendars';
 
 export default function LessonDetailsScreen() {
+  const { colors, isDark } = useAppTheme();
   const { lessonId, date } = useLocalSearchParams<{ lessonId: string; date?: string }>();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [homework, setHomework] = useState<Homework[]>([]);
@@ -56,13 +45,19 @@ export default function LessonDetailsScreen() {
   const [newExamDate, setNewExamDate] = useState('');
   const [showExamDatePicker, setShowExamDatePicker] = useState(false);
   const [newExamRoom, setNewExamRoom] = useState('');
+  const [gradingExamId, setGradingExamId] = useState<number | null>(null);
 
-  const { create: createHomework, remove: removeHomework, reload: reloadHomework, toggle: toggleHomework } = useHomework();
-  const { create: createExam, remove: removeExam, reload: reloadExams, toggle: toggleExam } = useExams();
-  const { create: createNote, reload: reloadNotes } = useNotes();
+  const { create: createHomework, remove: removeHomework, toggle: toggleHomework } = useHomework();
+  const { create: createExam } = useExams();
+  const { setExamDone, setExamGrade, deleteExamEntry } = useAssessmentActions();
+  const { create: createNote } = useNotes();
+  const calendarTheme = useMemo(() => getCalendarTheme(isDark), [isDark]);
+
+  useEffect(() => {
+    ensureRuCalendarLocale();
+  }, []);
 
   // Получаем дату урока (из параметров или сегодняшнюю)
-  const lessonDate = date || new Date().toISOString().split('T')[0];
   const todayDate = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
@@ -210,7 +205,7 @@ export default function LessonDetailsScreen() {
   };
 
   const handleToggleExam = (examId: number, currentStatus: number) => {
-    toggleExam(examId, currentStatus !== 1);
+    setExamDone(examId, currentStatus !== 1);
     // Обновляем локальное состояние после переключения
     if (lesson) {
       const updatedExams = date 
@@ -239,7 +234,7 @@ export default function LessonDetailsScreen() {
           text: 'Удалить',
           style: 'destructive',
           onPress: () => {
-            removeExam(examId);
+            deleteExamEntry(examId);
             if (lesson) {
               const updatedExams = date 
                 ? getExamsBySubjectIdAndDate(lesson.subject_id, date)
@@ -252,32 +247,39 @@ export default function LessonDetailsScreen() {
     );
   };
 
+  const handleSetExamGrade = (exam: Exam, gradeValue: number) => {
+    if (!lesson) {
+      return;
+    }
+    setExamGrade({ exam, subjectId: lesson.subject_id, grade: gradeValue });
+    setGradingExamId(null);
+    Alert.alert('Успешно', `Оценка ${gradeValue} сохранена`);
+    if (lesson) {
+      const updatedExams = date 
+        ? getExamsBySubjectIdAndDate(lesson.subject_id, date)
+        : getExamsBySubjectId(lesson.subject_id);
+      setExams(updatedExams);
+    }
+  };
+
   if (!lesson) {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="close" size={32} color="#fff" />
-          </TouchableOpacity>
-        </View>
+      <ScreenContainer style={styles.container}>
+        <ScreenHeader action="close" />
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Загрузка...</Text>
+          <Text style={[styles.loadingText, { color: colors.textPrimary }]}>Загрузка...</Text>
         </View>
-      </View>
+      </ScreenContainer>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.bgPrimary }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={32} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader action="close" />
 
       <ScrollView
         style={styles.content}
@@ -285,60 +287,66 @@ export default function LessonDetailsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Заголовок с названием пары */}
-        <Text style={styles.title}>{lesson.subject_name || `Предмет #${lesson.subject_id}`}</Text>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{lesson.subject_name || `Предмет #${lesson.subject_id}`}</Text>
         
-        {/* Тип пары */}
-        <Text style={styles.type}>{lesson.type}</Text>
-        
-        {/* Преподаватель и аудитория */}
-        <View style={styles.infoRow}>
-          <Text style={styles.infoText}>
-            {lesson.teacher_name || `Преподаватель #${lesson.teacher_id}`}
-          </Text>
-          {lesson.room && (
-            <Text style={styles.infoText}> · {lesson.room}</Text>
-          )}
+        <View style={[styles.typePill, { backgroundColor: colors.accentSoft }]}>
+          <Text style={[styles.typePillText, { color: colors.accent }]}>{lesson.type}</Text>
         </View>
 
-        {/* Время */}
-        <Text style={styles.time}>
-          {lesson.start_time} - {lesson.end_time}
-        </Text>
+        <View style={styles.metaRow}>
+          <Ionicons name="person-outline" size={18} color={colors.textMuted} style={styles.metaIcon} />
+          <Text style={[styles.metaText, { color: colors.textMuted }]}>
+            {lesson.teacher_name || `Преподаватель #${lesson.teacher_id}`}
+          </Text>
+        </View>
+
+        {lesson.room ? (
+          <View style={styles.metaRow}>
+            <Ionicons name="location-outline" size={18} color={colors.textMuted} style={styles.metaIcon} />
+            <Text style={[styles.metaText, { color: colors.textMuted }]}>{lesson.room}</Text>
+          </View>
+        ) : null}
+
+        <View style={[styles.metaRow, styles.metaRowLast]}>
+          <Ionicons name="time-outline" size={18} color={colors.textMuted} style={styles.metaIcon} />
+          <Text style={[styles.metaText, { color: colors.textMuted }]}>
+            {lesson.start_time} — {lesson.end_time}
+          </Text>
+        </View>
 
         {/* Список контрольных работ */}
         {controlWorks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Контрольные работы</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Контрольные работы</Text>
             {controlWorks.map((exam) => {
               const isCompleted = exam.is_completed === 1;
               return (
-                <View key={exam.id} style={styles.workItem}>
-                  <View style={[styles.workIndicator, styles.controlWorkIndicator]} />
-                  <View style={styles.workContent}>
-                    <Text style={[styles.workTitle, isCompleted && styles.workTitleCompleted]}>{exam.type}</Text>
-                    {exam.room && (
-                      <Text style={[styles.workSubtitle, isCompleted && styles.workSubtitleCompleted]}>Аудитория: {exam.room}</Text>
-                    )}
-                    <Text style={[styles.workSubtitle, isCompleted && styles.workSubtitleCompleted]}>Дата: {exam.date}</Text>
+                <React.Fragment key={exam.id}>
+                  <View style={styles.workItem}>
+                    <View style={[styles.workIndicator, styles.controlWorkIndicator]} />
+                    <View style={styles.workContent}>
+                      <Text style={[styles.workTitle, isCompleted && styles.workTitleCompleted]}>{exam.type}</Text>
+                      {exam.room && (
+                        <Text style={[styles.workSubtitle, isCompleted && styles.workSubtitleCompleted]}>Аудитория: {exam.room}</Text>
+                      )}
+                      <Text style={[styles.workSubtitle, isCompleted && styles.workSubtitleCompleted]}>Дата: {exam.date}</Text>
+                    </View>
+                    <View style={styles.workActions}>
+                      <AssessmentActions
+                        exam={exam}
+                        expanded={gradingExamId === exam.id}
+                        onToggleExpanded={() => setGradingExamId(gradingExamId === exam.id ? null : exam.id)}
+                        onToggleDone={(currentExam, done) => {
+                          handleToggleExam(currentExam.id, done ? 0 : 1);
+                        }}
+                        onDelete={(currentExam) => {
+                          handleDeleteExam(currentExam.id);
+                        }}
+                        onSetGrade={handleSetExamGrade}
+                      />
+                    </View>
                   </View>
-                  <View style={styles.workActions}>
-                    <TouchableOpacity
-                      onPress={() => handleToggleExam(exam.id, exam.is_completed || 0)}
-                      style={styles.checkboxContainer}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.checkbox, isCompleted && styles.checkboxChecked]}>
-                        {isCompleted && <Ionicons name="checkmark" size={16} color="#000" />}
-                      </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteExam(exam.id)}
-                      style={styles.deleteButton}
-                    >
-                      <Text style={styles.deleteButtonText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                </React.Fragment>
               );
             })}
           </View>
@@ -347,37 +355,36 @@ export default function LessonDetailsScreen() {
         {/* Список проверочных работ */}
         {testWorks.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Проверочные работы</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Проверочные работы</Text>
             {testWorks.map((exam) => {
               const isCompleted = exam.is_completed === 1;
               return (
-                <View key={exam.id} style={styles.workItem}>
-                  <View style={[styles.workIndicator, styles.testWorkIndicator]} />
-                  <View style={styles.workContent}>
-                    <Text style={[styles.workTitle, isCompleted && styles.workTitleCompleted]}>{exam.type}</Text>
-                    {exam.room && (
-                      <Text style={[styles.workSubtitle, isCompleted && styles.workSubtitleCompleted]}>Аудитория: {exam.room}</Text>
-                    )}
-                    <Text style={[styles.workSubtitle, isCompleted && styles.workSubtitleCompleted]}>Дата: {exam.date}</Text>
+                <React.Fragment key={exam.id}>
+                  <View style={styles.workItem}>
+                    <View style={[styles.workIndicator, styles.testWorkIndicator]} />
+                    <View style={styles.workContent}>
+                      <Text style={[styles.workTitle, isCompleted && styles.workTitleCompleted]}>{exam.type}</Text>
+                      {exam.room && (
+                        <Text style={[styles.workSubtitle, isCompleted && styles.workSubtitleCompleted]}>Аудитория: {exam.room}</Text>
+                      )}
+                      <Text style={[styles.workSubtitle, isCompleted && styles.workSubtitleCompleted]}>Дата: {exam.date}</Text>
+                    </View>
+                    <View style={styles.workActions}>
+                      <AssessmentActions
+                        exam={exam}
+                        expanded={gradingExamId === exam.id}
+                        onToggleExpanded={() => setGradingExamId(gradingExamId === exam.id ? null : exam.id)}
+                        onToggleDone={(currentExam, done) => {
+                          handleToggleExam(currentExam.id, done ? 0 : 1);
+                        }}
+                        onDelete={(currentExam) => {
+                          handleDeleteExam(currentExam.id);
+                        }}
+                        onSetGrade={handleSetExamGrade}
+                      />
+                    </View>
                   </View>
-                  <View style={styles.workActions}>
-                    <TouchableOpacity
-                      onPress={() => handleToggleExam(exam.id, exam.is_completed || 0)}
-                      style={styles.checkboxContainer}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.checkbox, isCompleted && styles.checkboxChecked]}>
-                        {isCompleted && <Ionicons name="checkmark" size={16} color="#000" />}
-                      </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteExam(exam.id)}
-                      style={styles.deleteButton}
-                    >
-                      <Text style={styles.deleteButtonText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                </React.Fragment>
               );
             })}
           </View>
@@ -386,7 +393,7 @@ export default function LessonDetailsScreen() {
         {/* Список домашних заданий */}
         {homework.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Домашние задания</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Домашние задания</Text>
             {homework.map((hw) => {
               const isCompleted = hw.is_completed === 1;
               return (
@@ -406,7 +413,7 @@ export default function LessonDetailsScreen() {
                       activeOpacity={0.7}
                     >
                       <View style={[styles.checkbox, isCompleted && styles.checkboxChecked]}>
-                        {isCompleted && <Ionicons name="checkmark" size={16} color="#000" />}
+                        {isCompleted && <Ionicons name="checkmark" size={16} color={colors.inverseText} />}
                       </View>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -502,7 +509,7 @@ export default function LessonDetailsScreen() {
                     }}
                     firstDay={1}
                     minDate={new Date().toISOString().split('T')[0]}
-                    theme={DARK_CALENDAR_THEME}
+                    theme={calendarTheme}
                   />
                 </View>
               )}
@@ -586,7 +593,7 @@ export default function LessonDetailsScreen() {
                     }}
                     firstDay={1}
                     minDate={new Date().toISOString().split('T')[0]}
-                    theme={DARK_CALENDAR_THEME}
+                    theme={calendarTheme}
                   />
                 </View>
               )}
@@ -624,7 +631,7 @@ export default function LessonDetailsScreen() {
 
         {/* Поле для заметки */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Заметки</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Заметки</Text>
           {notes.length > 0 && (
             <View style={styles.notesList}>
               {notes.map((note) => (
@@ -662,13 +669,11 @@ export default function LessonDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     paddingTop: 20,
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: '#000',
   },
   loadingContainer: {
     flex: 1,
@@ -676,7 +681,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#fff',
     fontSize: 16,
   },
   content: {
@@ -686,27 +690,33 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: '700',
-    color: '#fff',
     marginBottom: 8,
-    fontFamily: 'Glanz',
+    fontFamily: Typography.fonts.heading,
   },
-  type: {
-    fontSize: 26,
-    color: '#C89153',
-    marginBottom: 12,
-    fontFamily: 'Glanz',
+  typePill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 14,
   },
-  infoRow: {
+  typePillText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  metaRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  infoText: {
-    fontSize: 16,
-    color: '#999',
+  metaIcon: {
+    marginRight: 10,
   },
-  time: {
+  metaText: {
     fontSize: 16,
-    color: '#999',
+    flex: 1,
+  },
+  metaRowLast: {
     marginBottom: 30,
   },
   section: {
@@ -715,7 +725,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#fff',
     marginBottom: 16,
     fontFamily: 'serif',
   },
@@ -746,7 +755,7 @@ const styles = StyleSheet.create({
   workTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fff',
+    color: '#121417',
     marginBottom: 4,
   },
   workTitleCompleted: {
@@ -755,7 +764,7 @@ const styles = StyleSheet.create({
   },
   workSubtitle: {
     fontSize: 14,
-    color: '#999',
+    color: '#6D7680',
     marginBottom: 2,
   },
   workSubtitleCompleted: {
@@ -796,9 +805,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     borderStyle: 'dashed',
     marginBottom: 12,
   },
@@ -808,7 +817,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   addForm: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -816,17 +825,17 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: '#121417',
     marginBottom: 16,
   },
   input: {
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 12,
-    color: '#fff',
+    color: '#121417',
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     marginBottom: 12,
   },
   textArea: {
@@ -843,9 +852,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#000',
+    backgroundColor: '#EEF1F5',
     borderWidth: 2,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     alignItems: 'center',
   },
   typeButtonActive: {
@@ -853,7 +862,7 @@ const styles = StyleSheet.create({
     borderColor: '#C89153',
   },
   typeButtonText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 14,
   },
   typeButtonTextActive: {
@@ -871,7 +880,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelFormText: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 14,
   },
   saveFormButton: {
@@ -889,18 +898,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   noteItem: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
   },
   noteText: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 14,
     marginBottom: 4,
   },
   noteDate: {
-    color: '#999',
+    color: '#6D7680',
     fontSize: 12,
   },
   noteInput: {
@@ -932,39 +941,84 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
   },
+  gradeButton: {
+    backgroundColor: '#EEF1F5',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  gradeButtonText: {
+    color: '#121417',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  gradePickerRow: {
+    marginTop: -6,
+    marginBottom: 10,
+    marginLeft: 24,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  gradeActionRow: {
+    marginTop: -6,
+    marginBottom: 12,
+    marginLeft: 24,
+    backgroundColor: '#2A2016',
+    borderRadius: 10,
+    paddingVertical: 9,
+    alignItems: 'center',
+  },
+  gradeActionRowText: {
+    color: '#F6D3A7',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  gradeChip: {
+    backgroundColor: '#C89153',
+    borderRadius: 10,
+    width: 34,
+    height: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  gradeChipText: {
+    color: '#000',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   infoLabel: {
     fontSize: 14,
-    color: '#999',
+    color: '#6D7680',
     marginBottom: 12,
     fontStyle: 'italic',
   },
   sectionLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#fff',
+    color: '#121417',
     marginBottom: 8,
     marginTop: 10,
   },
   dateButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#DEE3EA',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
   dateButtonText: {
-    color: '#fff',
+    color: '#121417',
     fontSize: 14,
   },
   dateButtonIcon: {
     fontSize: 20,
   },
   calendarContainer: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,

@@ -1,14 +1,16 @@
 import LessonContainer from '@/components/LessonContainer';
+import PrimaryFab from '@/components/ui/primary-fab';
 import SummaryCard from '@/components/SummaryCard';
+import { Typography } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
 import { useExams } from '@/hooks/use-exams';
 import { useHomework } from '@/hooks/use-homework';
 import { useLessons } from '@/hooks/use-lessons';
 import { useScheduleSettings } from '@/hooks/use-schedule-settings';
-import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Dimensions, FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Animated, Dimensions, FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -60,6 +62,7 @@ const DayItem = React.memo(({
   settings, 
   currentWeekNumber 
 }: DayItemProps) => {
+  const { colors, isDark } = useAppTheme();
   // Фильтруем уроки для этого дня с учетом недели
   const itemLessons = lessons.filter(lesson => {
     if (lesson.day_of_week !== item.dayOfWeek) return false;
@@ -94,7 +97,7 @@ const DayItem = React.memo(({
     <View style={[styles.dayContainer, { width: SCREEN_WIDTH }]}>
       <View style={styles.dayContentWrapper}>
         <ScrollView 
-          style={styles.scrollViewContainer}
+          style={[styles.scrollViewContainer, { backgroundColor: colors.bgPrimary }]}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -102,10 +105,15 @@ const DayItem = React.memo(({
           <Animated.View 
             style={[
               styles.summaryWrapper,
+              { backgroundColor: colors.surface },
               {
                 transform: [{ scale: scaleAnim }],
               },
-              isActive && styles.summaryWrapperActive,
+              isActive && [
+              styles.summaryWrapperActive,
+              isDark && styles.summaryWrapperActiveDark,
+              { shadowColor: colors.textPrimary },
+            ],
             ]}
           >
             <SummaryCard 
@@ -133,6 +141,8 @@ const DayItem = React.memo(({
 DayItem.displayName = 'DayItem';
 
 export default function ScheduleScreen() {
+  const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
   // Используем хуки для получения данных
   const { lessons, reload: reloadLessons } = useLessons();
   const { homework, reload: reloadHomework } = useHomework();
@@ -281,10 +291,15 @@ export default function ScheduleScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Заголовок страницы */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{headerTitle}</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.bgPrimary }]} edges={['bottom', 'left', 'right']}>
+      {/* Заголовок: явный отступ от статус-бара (на табах верхний inset часто уже «съеден» навигатором) */}
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: colors.bgPrimary, paddingTop: insets.top + 12 },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>{headerTitle}</Text>
       </View>
 
       {/* Горизонтальная прокрутка дней */}
@@ -311,21 +326,16 @@ export default function ScheduleScreen() {
         }}
       />
 
-      {/* Кнопка добавления домашнего задания */}
-      <TouchableOpacity
-        style={styles.addButton}
+      <PrimaryFab
         onPress={() => {
           if (currentDay) {
             router.push({
               pathname: '/add-homework',
-              params: { date: currentDay.dateString }
+              params: { date: currentDay.dateString },
             });
           }
         }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={32} color="#000" />
-      </TouchableOpacity>
+      />
     </SafeAreaView>
   );
 }
@@ -333,20 +343,16 @@ export default function ScheduleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
-    paddingTop: 30,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#000',
     alignItems: 'flex-start',
   },
   headerTitle: {
     fontSize: 40,
     fontWeight: '700',
-    color: '#fff',
-    fontFamily: 'Glanz',
+    fontFamily: Typography.fonts.heading,
   },
   dayContainer: {
     flex: 1,
@@ -358,7 +364,6 @@ const styles = StyleSheet.create({
   },
   scrollViewContainer: {
     flex: 1,
-    backgroundColor: '#000',
   },
   scrollContent: {
     paddingHorizontal: 12,
@@ -366,13 +371,11 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   summaryWrapper: {
-    backgroundColor: '#fff',
     borderRadius: 20,
     marginBottom: 20,
     overflow: 'hidden',
   },
   summaryWrapperActive: {
-    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
@@ -381,20 +384,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  addButton: {
-    position: 'absolute',
-    right: 20,
-    bottom: 100,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#C89153',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  summaryWrapperActiveDark: {
+    shadowOpacity: 0.45,
   },
 });

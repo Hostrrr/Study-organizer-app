@@ -1,5 +1,8 @@
 import { Exam, Homework, Lesson } from '@/types/db';
-import { isControlWork } from '@/utils/exam-utils';
+import { Typography } from '@/constants/theme';
+import { useAppTheme } from '@/hooks/use-app-theme';
+import { isControlWork, isTestWork } from '@/utils/exam-utils';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -26,109 +29,109 @@ const MONTHS = [
   "июля","августа","сентября","октября","ноября","декабря"
 ];
 
-// Функция для правильного склонения слов
 function pluralize(count: number, forms: [string, string, string]): string {
   const cases = [2, 0, 1, 1, 1, 2];
   return forms[(count % 100 > 4 && count % 100 < 20) ? 2 : cases[Math.min(count % 10, 5)]];
 }
 
+type SummaryRow = {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  text: string;
+};
+
 export default function SummaryCard({ date: propDate, lessons, homework = [], allHomework = [], exams = [] }: SummaryCardProps) {
+  const { colors } = useAppTheme();
   
-  // === 1. Дата ===
   const date = propDate || new Date();
 
   const dayName = WEEK_DAYS[date.getDay()];
   const dayNum  = date.getDate();
   const monthName = MONTHS[date.getMonth()];
-  const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD
+  const dateString = date.toISOString().split('T')[0];
 
-  // === 2. Статистика по урокам ===
   const stats = useMemo(() => {
     const totalLessons = lessons.length;
     const homeworkCount = homework.length;
-    
-    // Подсчитываем выполненные домашние задания для этого дня
     const completedHomework = homework.filter(hw => hw.is_completed === 1).length;
-    
-    // Подсчитываем контрольные работы на эту дату
-    const controlWorks = exams.filter(exam => {
-      return exam.date === dateString && isControlWork(exam.type);
-    }).length;
-    
-    // Подсчитываем долги: невыполненные домашние задания с просроченным дедлайном
+    const controlWorks = exams.filter(exam => exam.date === dateString && isControlWork(exam.type)).length;
+    const testWorks = exams.filter(exam => exam.date === dateString && isTestWork(exam.type)).length;
     const today = new Date();
-    const todayDateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    const debts = allHomework.filter(hw => {
-      // Долг = невыполненное задание (is_completed === 0) с дедлайном раньше сегодня
-      return hw.is_completed === 0 && hw.due_date < todayDateString;
-    }).length;
+    const todayDateString = today.toISOString().split('T')[0];
+    const debts = allHomework.filter(hw => hw.is_completed === 0 && hw.due_date < todayDateString).length;
 
-    return { totalLessons, tests: controlWorks, homework: homeworkCount, completedHomework, debts };
+    return { totalLessons, controlWorks, testWorks, homework: homeworkCount, completedHomework, debts };
   }, [lessons, homework, allHomework, exams, dateString]);
 
-  // Формируем читабельный текст
-  const formatSummary = () => {
-    const parts: string[] = [];
-    
-    // Уроки
+  const summaryRows = useMemo((): SummaryRow[] => {
+    const rows: SummaryRow[] = [];
+
     if (stats.totalLessons > 0) {
       const lessonWord = pluralize(stats.totalLessons, ['пара', 'пары', 'пар']);
-      parts.push(`Запланировано ${stats.totalLessons} ${lessonWord}`);
+      rows.push({ icon: 'book-outline', text: `Запланировано ${stats.totalLessons} ${lessonWord}` });
     } else {
-      parts.push('Сегодня нет пар');
+      rows.push({ icon: 'book-outline', text: 'Сегодня нет пар' });
     }
-    
-    // Контрольные работы
-    if (stats.tests > 0) {
-      const testWord = pluralize(stats.tests, ['контрольная', 'контрольные', 'контрольных']);
-      parts.push(`📝 Запланировано ${stats.tests} ${testWord}`);
+
+    if (stats.controlWorks > 0) {
+      const w = pluralize(stats.controlWorks, ['контрольная', 'контрольные', 'контрольных']);
+      rows.push({ icon: 'warning-outline', text: `Запланировано ${stats.controlWorks} ${w}` });
     }
-    
-    // Домашние задания
+
+    if (stats.testWorks > 0) {
+      const w = pluralize(stats.testWorks, ['проверочная', 'проверочные', 'проверочных']);
+      rows.push({ icon: 'checkmark-circle-outline', text: `Запланировано ${stats.testWorks} ${w}` });
+    }
+
     if (stats.homework > 0) {
       const hwWord = pluralize(stats.homework, ['домашнее задание', 'домашних задания', 'домашних заданий']);
-      parts.push(`Задано ${stats.homework} ${hwWord}`);
-      
-      // Показываем информацию о выполненных заданиях
+      rows.push({ icon: 'document-text-outline', text: `Задано ${stats.homework} ${hwWord}` });
+
       const completedHwWord = pluralize(stats.completedHomework, ['задание', 'задания', 'заданий']);
       if (stats.completedHomework === stats.homework) {
-        if (stats.completedHomework === 1) {
-          parts.push(`✅ Все ${stats.completedHomework} ${completedHwWord} выполнено`);
-        } else {
-          parts.push(`✅ Все ${stats.completedHomework} ${completedHwWord} выполнены`);
-        }
+        rows.push({
+          icon: 'checkmark-circle-outline',
+          text:
+            stats.completedHomework === 1
+              ? `Все ${stats.completedHomework} ${completedHwWord} выполнено`
+              : `Все ${stats.completedHomework} ${completedHwWord} выполнены`,
+        });
       } else if (stats.completedHomework > 0) {
-        parts.push(`✅ Выполнено ${stats.completedHomework} из ${stats.homework} ${completedHwWord}`);
+        rows.push({
+          icon: 'checkmark-circle-outline',
+          text: `Выполнено ${stats.completedHomework} из ${stats.homework} ${completedHwWord}`,
+        });
       }
     }
-    
-    // Долги
+
     if (stats.debts > 0) {
       const debtWord = pluralize(stats.debts, ['долг', 'долга', 'долгов']);
-      parts.push(`⚠️ Просрочено ${stats.debts} ${debtWord}`);
+      rows.push({ icon: 'warning-outline', text: `Просрочено ${stats.debts} ${debtWord}` });
     } else if (
-      stats.totalLessons > 0 && 
-      stats.debts === 0 && 
+      stats.totalLessons > 0 &&
+      stats.debts === 0 &&
       (stats.homework === 0 || stats.completedHomework === stats.homework)
     ) {
-      // Показываем "Всё сделано!" только если есть уроки, нет долгов и все задания выполнены (или их нет)
-      parts.push('Всё сделано! 🎉');
+      rows.push({ icon: 'list-outline', text: 'Всё сделано!' });
     }
-    
-    return parts.join('\n');
-  };
+
+    return rows;
+  }, [stats]);
 
   return (
-    <View style={styles.summaryContainer}>
+    <View style={[styles.summaryContainer, { backgroundColor: colors.accentSoft }]}>
       <View style={styles.container}>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: colors.textPrimary, fontFamily: Typography.fonts.body }]}>
           {dayNum} {monthName}, {dayName}
         </Text>
 
-        <Text style={styles.details}>
-          {formatSummary()}
-        </Text>
+        <View style={styles.rows}>
+          {summaryRows.map((row, i) => (
+            <View key={`${row.text}-${i}`} style={styles.summaryRow}>
+              <Ionicons name={row.icon} size={22} color={colors.textSecondary} style={styles.rowIcon} />
+              <Text style={[styles.rowText, { color: colors.textSecondary }]}>{row.text}</Text>
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -136,7 +139,6 @@ export default function SummaryCard({ date: propDate, lessons, homework = [], al
 
 const styles = StyleSheet.create({
   summaryContainer: {
-    backgroundColor: '#C89153',
     borderRadius: 0,
     overflow: 'hidden',
   },
@@ -145,13 +147,23 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 24,
-    color: '#fff',
     marginBottom: 12,
     fontFamily: 'serif',
   },
-  details: {
-    color: '#fff',
+  rows: {
+    gap: 10,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  rowIcon: {
+    marginRight: 10,
+    marginTop: 2,
+  },
+  rowText: {
     fontSize: 18,
-    lineHeight: 28,
+    lineHeight: 26,
+    flex: 1,
   },
 });
