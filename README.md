@@ -2,7 +2,7 @@
 
 # StudyOrganizer
 
-### Кросс-платформенный мобильный органайзер для учёбы
+### A cross-platform mobile organizer for students
 
 <div align="center">
   <img src="./assets/screenshots/1.png" width="30%" />
@@ -17,59 +17,59 @@
 [![SQLite](https://img.shields.io/badge/SQLite-local%20DB-003B57?style=flat-square&logo=sqlite)](https://www.sqlite.org/)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android-lightgrey?style=flat-square)](https://reactnative.dev/)
 
-*Курсовой проект — Кубанский государственный университет, факультет компьютерных технологий и прикладной математики*
+*Course project — Kuban State University, Faculty of Computer Technologies and Applied Mathematics*
 
 </div>
 
 ---
 
-## О проекте
+## About
 
-**StudyOrganizer** — это мобильное приложение для студентов, помогающее структурировать учебный процесс: расписание, дедлайны, заметки, флэшкарды и оценки в одном месте. Построено на **React Native** + **Expo** с маршрутизацией через **Expo Router**, работает на iOS и Android из одной TypeScript-кодобазы.
+**StudyOrganizer** is a mobile app for students that brings everything around studying into one place: schedule, deadlines, notes, flashcards, and grades. It is built on **React Native** + **Expo** with **Expo Router** for navigation, and runs on both iOS and Android from a single TypeScript codebase.
 
-Все данные хранятся локально в SQLite — приложение полностью функционально без интернета и не требует регистрации.
+All data is stored locally in SQLite — the app is fully functional offline and requires no account.
 
 ---
 
-## Возможности
+## Features
 
-| Раздел | Описание |
+| Area | Description |
 |---|---|
-| **Расписание** | Понедельная сетка пар с поддержкой формата «одна неделя» / «две недели» (A/B), редактированием и мастером первого запуска |
-| **Календарь** | Просмотр событий по дате: пары, домашка, контрольные, тесты, экзамены |
-| **База знаний** | Заметки в Markdown, организованные по предметам и папкам, со ссылками между заметками |
-| **Флэшкарды** | Извлечение карточек из Markdown-заметок, режим повторения с алгоритмом интервалов (SM-2) |
-| **Оценки** | Учёт оценок за экзамены, контрольные и тесты по каждому предмету |
-| **Vault Sync** | Импорт/экспорт базы знаний в формате, совместимом с Obsidian-подобными хранилищами |
-| **Streak** | Счётчик дней подряд с активным повторением карточек |
-| **Темы** | Светлая / тёмная / системная тема |
-| **Локальное хранение** | Все данные в SQLite на устройстве, без аккаунта и сети |
+| **Schedule** | Weekly timetable with single-week and bi-weekly (A/B) formats, editing, and a first-launch setup wizard |
+| **Calendar** | Day view of everything happening on a given date: lessons, homework, control works, tests, exams |
+| **Knowledge base** | Markdown notes organized by subject and folders, with cross-links between notes |
+| **Flashcards** | Extracts cards from Markdown notes, review mode with spaced repetition (SM-2 algorithm) |
+| **Grades** | Tracks grades for exams, control works, and tests per subject |
+| **Vault Sync** | Import / export the knowledge base in an Obsidian-compatible format |
+| **Streak** | Tracks consecutive days of flashcard review activity |
+| **Theming** | Light / dark / system theme |
+| **Local-first** | All data stored in on-device SQLite, no account or network required |
 
 ---
 
-## Технологический стек
+## Tech stack
 
-- **Фреймворк:** [React Native](https://reactnative.dev/) 0.83 + [Expo](https://expo.dev/) SDK 55
-- **Язык:** TypeScript 5.9
+- **Framework:** [React Native](https://reactnative.dev/) 0.83 + [Expo](https://expo.dev/) SDK 55
+- **Language:** TypeScript 5.9
 - **UI:** React 19, Reanimated 4, expo-blur, expo-glass-effect, expo-linear-gradient
-- **Маршрутизация:** [Expo Router](https://docs.expo.dev/router/introduction/) (typed routes)
-- **БД:** SQLite через `expo-sqlite`
-- **Графики:** `react-native-gifted-charts`, `react-native-chart-kit`
-- **Календарь:** `react-native-calendars`
+- **Navigation:** [Expo Router](https://docs.expo.dev/router/introduction/) with typed routes
+- **Database:** SQLite via `expo-sqlite`
+- **Charts:** `react-native-gifted-charts`, `react-native-chart-kit`
+- **Calendar:** `react-native-calendars`
 - **Markdown:** `react-native-markdown-display`
-- **Сборка:** Expo CLI, EAS Build, Metro
+- **Build:** Expo CLI, EAS Build, Metro
 
 ---
 
-## Быстрый старт
+## Getting started
 
-### Требования
+### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18 или выше
+- [Node.js](https://nodejs.org/) 18 or later
 - npm 9+
-- [Expo Go](https://expo.dev/client) на телефоне *или* Xcode / Android Studio для симуляторов
+- [Expo Go](https://expo.dev/client) on your phone *or* Xcode / Android Studio for simulators
 
-### Установка и запуск
+### Install and run
 
 ```bash
 git clone https://github.com/hostrrr/study-organizer-app.git
@@ -80,12 +80,12 @@ npm install
 npx expo start
 ```
 
-Дальше:
+Then:
 
-- отсканируйте QR-код в **Expo Go**, или
-- нажмите `i` для запуска в iOS-симуляторе, `a` — в Android-эмуляторе.
+- scan the QR code with **Expo Go**, or
+- press `i` to open the iOS simulator, `a` for the Android emulator.
 
-Для нативной сборки (с кастомными нативными модулями) используйте:
+For native builds (with custom native modules):
 
 ```bash
 npx expo run:ios
@@ -94,100 +94,100 @@ npx expo run:android
 
 ---
 
-## Структура проекта
+## Project structure
 
 ```
 StudyOrganizer/
-├── app/                         # Expo Router — экраны и навигация
-│   ├── _layout.tsx              # Корневой Stack + инициализация БД, шрифтов, темы
-│   ├── (tabs)/                  # Нижняя панель навигации
+├── app/                         # Expo Router — screens and navigation
+│   ├── _layout.tsx              # Root Stack + DB / fonts / theme bootstrap
+│   ├── (tabs)/                  # Bottom tab navigation
 │   │   ├── _layout.tsx
-│   │   ├── schedule.tsx         # Расписание на неделю
-│   │   ├── calendar.tsx         # Календарь по датам
-│   │   └── notes.tsx            # База знаний / предметы
-│   ├── startup.tsx              # Мастер первого запуска
-│   ├── add-lesson.tsx           # Добавление пары
-│   ├── edit-schedule.tsx        # Редактирование расписания
-│   ├── add-homework.tsx         # Добавление домашки/контрольной
-│   ├── lesson-details.tsx       # Детали пары
-│   ├── date-details.tsx         # Детали дня
-│   ├── subject-details.tsx      # Детали предмета (заметки, оценки, экзамены)
-│   ├── note-editor.tsx          # Markdown-редактор заметок
-│   ├── flashcard-review.tsx     # Повторение флэшкард
-│   ├── vault-sync.tsx           # Импорт/экспорт базы знаний
-│   └── settings.tsx             # Настройки
-├── components/                  # Переиспользуемые UI-компоненты
-│   └── ui/                      # Базовые UI-примитивы (FAB, контейнеры, иконки)
-├── hooks/                       # Хуки доступа к данным и состоянию
-├── database/                    # SQLite: схема (db.ts), запросы, отладочные сиды
-├── constants/                   # Темы и цветовая схема
-├── utils/                       # Утилиты (флэшкарды из Markdown, экзамены и т.д.)
-├── types/                       # Типы доменной модели
-├── assets/                      # Иконки, шрифты, изображения, скриншоты
-├── scripts/                     # Сервисные скрипты (например, reset-project)
-├── app.json                     # Конфигурация Expo
-├── eas.json                     # Конфигурация EAS Build
+│   │   ├── schedule.tsx         # Weekly schedule
+│   │   ├── calendar.tsx         # Date-based calendar
+│   │   └── notes.tsx            # Knowledge base / subjects
+│   ├── startup.tsx              # First-launch setup wizard
+│   ├── add-lesson.tsx           # Add a lesson
+│   ├── edit-schedule.tsx        # Edit the timetable
+│   ├── add-homework.tsx         # Add homework / control work
+│   ├── lesson-details.tsx       # Lesson details
+│   ├── date-details.tsx         # Day details
+│   ├── subject-details.tsx      # Subject details (notes, grades, exams)
+│   ├── note-editor.tsx          # Markdown note editor
+│   ├── flashcard-review.tsx     # Flashcard review session
+│   ├── vault-sync.tsx           # Knowledge base import / export
+│   └── settings.tsx             # App settings
+├── components/                  # Reusable UI components
+│   └── ui/                      # Base UI primitives (FAB, containers, icons)
+├── hooks/                       # Data-access and state hooks
+├── database/                    # SQLite: schema (db.ts), queries, debug seeds
+├── constants/                   # Theme and color tokens
+├── utils/                       # Utilities (Markdown flashcards, exams, etc.)
+├── types/                       # Domain model types
+├── assets/                      # Icons, fonts, images, screenshots
+├── scripts/                     # Helper scripts (e.g., reset-project)
+├── app.json                     # Expo configuration
+├── eas.json                     # EAS Build configuration
 ├── package.json
 └── tsconfig.json
 ```
 
 ---
 
-## Схема БД
+## Database schema
 
-Локальная SQLite-база (`study-organizer.db`) с основными таблицами:
+A local SQLite database (`study-organizer.db`) with the following main tables:
 
-| Таблица | Назначение |
+| Table | Purpose |
 |---|---|
-| `subjects`, `teachers` | Справочники предметов и преподавателей |
-| `lessons` | Пары в расписании (день, время, аудитория, формат недели A/B) |
-| `homework` | Домашние задания, привязанные к парам |
-| `tasks` | Произвольные задачи и напоминания |
-| `exams` | Контрольные, тесты, зачёты, экзамены |
-| `grades` | Оценки по предметам/экзаменам |
-| `notes` / `notes_v2` | Заметки (старая и новая v2-схема с Markdown и тегами) |
-| `note_folders`, `note_links` | Папки и ссылки между заметками |
-| `flashcards` | Флэшкарды с интервалами повторения (SM-2) |
-| `review_log` | Лог повторений для streak и аналитики |
-| `attachments` | Файлы, изображения, ссылки |
-| `app_settings` | Служебные настройки (флаги, версии) |
+| `subjects`, `teachers` | Subject and teacher reference data |
+| `lessons` | Timetable lessons (day, time, room, A/B-week format) |
+| `homework` | Homework items linked to lessons |
+| `tasks` | Generic tasks and reminders |
+| `exams` | Control works, tests, credits, exams |
+| `grades` | Grades per subject / exam |
+| `notes` / `notes_v2` | Notes (legacy and the new v2 schema with Markdown and tags) |
+| `note_folders`, `note_links` | Folders and cross-links between notes |
+| `flashcards` | Flashcards with spaced repetition state (SM-2) |
+| `review_log` | Review history for streaks and analytics |
+| `attachments` | Files, images, links |
+| `app_settings` | Internal flags and versions |
 
-Миграции выполняются inline в `database/db.ts` через `PRAGMA table_info` + `ALTER TABLE`.
-
----
-
-## Архитектура
-
-Приложение построено по принципу разделения слоёв:
-
-- **UI-слой** — экраны и компоненты на React Native, локальное состояние через хуки
-- **Слой данных** — кастомные хуки (`hooks/use-*`) поверх запросов SQLite в `database/queries.ts`
-- **Слой БД** — `database/db.ts` (схема + миграции), `expo-sqlite` для синхронных операций
-- **Навигация** — Expo Router с typed routes; модальные экраны через `presentation: 'modal'`
+Migrations are applied inline in `database/db.ts` via `PRAGMA table_info` + `ALTER TABLE`.
 
 ---
 
-## Тестирование
+## Architecture
 
-Приложение протестировано на:
+The app is split into clear layers:
 
-- физическом устройстве Android
-- iOS-симуляторе (Xcode)
-- Expo Go (iOS и Android)
-- разных размерах экрана (телефон, планшет)
+- **UI layer** — React Native screens and components, local state via hooks
+- **Data layer** — custom hooks (`hooks/use-*`) on top of SQL queries in `database/queries.ts`
+- **DB layer** — `database/db.ts` (schema + migrations) using synchronous `expo-sqlite`
+- **Navigation** — Expo Router with typed routes; modal screens via `presentation: 'modal'`
 
 ---
 
-## Лицензия
+## Testing
 
-Проект разработан как **курсовая работа** в Кубанском государственном университете (2025–2026).
-Можно свободно использовать как справочный материал или основу для своих проектов.
+The app has been tested on:
+
+- a physical Android device
+- the iOS simulator (Xcode)
+- Expo Go (iOS and Android)
+- multiple screen sizes (phone and tablet)
+
+---
+
+## License
+
+Developed as a **course project** at Kuban State University (2025–2026).
+Free to use as reference material or as a starting point for your own projects.
 
 ---
 
 <div align="center">
 
-Сделано **Г. С. Назаренко**
-Кубанский государственный университет · 2025–2026
+Made by **G. S. Nazarenko**
+Kuban State University · 2025–2026
 
 </div>
